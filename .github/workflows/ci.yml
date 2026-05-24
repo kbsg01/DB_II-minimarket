@@ -100,6 +100,6 @@ jobs:
           if [[ "${HTTP_CODE}" == "200" ]]; then
             echo "✅ App respondiendo correctamente"
           else
-            echo "⚠️  App no responde en /public/index (código ${HTTP_CODE})"
+            echo "❌ App no responde en /public/index (código ${HTTP_CODE})"
             echo "Verifica los logs: sudo journalctl -u minimarket -n 50"
           fi
