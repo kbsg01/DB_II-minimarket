@@ -31,11 +31,3 @@ build/
 
 ### VS Code ###
 .vscode/
-
-### Variables de entorno — NUNCA commitear credenciales reales ###
-.env
-*.env
-!.env.example
-infra/ec2-setup.sh
-infra/minimarket.service
-infra/rds-oracle-setup.sh
