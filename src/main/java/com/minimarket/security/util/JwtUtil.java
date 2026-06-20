@@ -13,4 +13,8 @@ public class JwtUtil {
     public boolean validateToken(String token, UserDetails userDetails) {
         return false;
     }
+
+    public String generateToken(UserDetails userDetails) {
+        return null;
+    }
 }
