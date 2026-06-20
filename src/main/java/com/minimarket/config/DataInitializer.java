@@ -8,17 +8,17 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Inicializador de datos de prueba.
- * Se ejecuta al arrancar la aplicación (CommandLineRunner) e inserta en la BD:
- *  - Roles: GERENTE, EMPLEADO, CLIENTE
- *  - Usuarios de prueba uno por cada rol (contraseñas hasheadas con BCrypt)
+ * Inicializa roles y usuarios de prueba al arrancar la aplicación.
+ * Útil para demostrar la autorización basada en roles sin necesidad de un
+ * proceso de registro previo.
  *
- * Útil para demostrar y probar la autorización basada en roles sin necesidad
- * de registrar usuarios manualmente.
+ * Usuarios creados:
+ *   admin    / admin123    → ROLE_ADMIN
+ *   empleado / empleado123 → ROLE_EMPLEADO
+ *   cliente  / cliente123  → ROLE_CLIENTE
  */
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -36,44 +36,34 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     @Override
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
+        // Crear roles si no existen
+        Rol admin    = getOrCreateRol("ROLE_ADMIN");
+        Rol empleado = getOrCreateRol("ROLE_EMPLEADO");
+        Rol cliente  = getOrCreateRol("ROLE_CLIENTE");
 
-        // ── 1. Crear roles si no existen ──────────────────────────────────────
-        Rol rolGerente  = crearRolSiNoExiste("GERENTE");
-        Rol rolEmpleado = crearRolSiNoExiste("EMPLEADO");
-        Rol rolCliente  = crearRolSiNoExiste("CLIENTE");
-
-        // ── 2. Crear usuarios de prueba si no existen ─────────────────────────
-
-        // Gerente: acceso total
-        crearUsuarioSiNoExiste("gerente", "gerente123", Set.of(rolGerente));
-
-        // Empleado: puede gestionar productos, inventario y ventas
-        crearUsuarioSiNoExiste("empleado", "empleado123", Set.of(rolEmpleado));
-
-        // Cliente: puede navegar catálogo y gestionar su carrito
-        crearUsuarioSiNoExiste("cliente", "cliente123", Set.of(rolCliente));
-
-        System.out.println("[DataInitializer] Roles y usuarios de prueba cargados.");
+        // Crear usuarios de prueba si no existen
+        crearUsuario("admin",    "admin123",    Set.of(admin));
+        crearUsuario("empleado", "empleado123", Set.of(empleado));
+        crearUsuario("cliente",  "cliente123",  Set.of(cliente));
     }
 
-    /** Crea un rol solo si no existe aún en la BD. */
-    private Rol crearRolSiNoExiste(String nombre) {
-        return rolRepository.findByNombre(nombre).orElseGet(() -> {
-            Rol rol = new Rol();
-            rol.setNombre(nombre);
-            return rolRepository.save(rol);
-        });
+    private Rol getOrCreateRol(String nombre) {
+        return rolRepository.findByNombre(nombre)
+                .orElseGet(() -> {
+                    Rol r = new Rol();
+                    r.setNombre(nombre);
+                    return rolRepository.save(r);
+                });
     }
 
-    /** Crea un usuario solo si el username no existe aún en la BD. */
-    private void crearUsuarioSiNoExiste(String username, String passwordPlano, Set<Rol> roles) {
+    private void crearUsuario(String username, String rawPassword, Set<Rol> roles) {
         if (usuarioRepository.findByUsername(username).isEmpty()) {
-            Usuario usuario = new Usuario();
-            usuario.setUsername(username);
-            usuario.setPassword(passwordEncoder.encode(passwordPlano)); // BCrypt
-            usuario.setRoles(new HashSet<>(roles));
-            usuarioRepository.save(usuario);
+            Usuario u = new Usuario();
+            u.setUsername(username);
+            u.setPassword(passwordEncoder.encode(rawPassword)); // BCrypt hash
+            u.setRoles(roles);
+            usuarioRepository.save(u);
         }
     }
 }

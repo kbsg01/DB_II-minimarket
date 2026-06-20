@@ -1,12 +1,7 @@
 package com.minimarket.controller;
 
-import com.minimarket.entity.Rol;
-import com.minimarket.entity.Usuario;
 import com.minimarket.security.model.LoginRequest;
-import com.minimarket.security.model.LoginResponse;
 import com.minimarket.security.util.JwtUtil;
-import com.minimarket.service.RolService;
-import com.minimarket.service.UsuarioService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -14,101 +9,58 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Controlador de autenticación y registro de usuarios.
- * Expone endpoints públicos (sin JWT): /auth/login y /auth/registro.
+ * Endpoint de autenticación: recibe credenciales, valida con Spring Security
+ * y retorna un JWT firmado listo para usar en peticiones posteriores.
+ *
+ * POST /api/auth/login
+ *   Body: { "username": "...", "password": "..." }
+ *   Response 200: { "token": "<JWT>", "username": "...", "roles": [...] }
+ *   Response 401: credenciales inválidas
  */
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
+    private final AuthenticationManager authManager;
     private final JwtUtil jwtUtil;
-    private final UsuarioService usuarioService;
-    private final RolService rolService;
-    private final PasswordEncoder passwordEncoder;
 
-    public AuthController(AuthenticationManager authenticationManager,
-                          JwtUtil jwtUtil,
-                          UsuarioService usuarioService,
-                          RolService rolService,
-                          PasswordEncoder passwordEncoder) {
-        this.authenticationManager = authenticationManager;
+    public AuthController(AuthenticationManager authManager, JwtUtil jwtUtil) {
+        this.authManager = authManager;
         this.jwtUtil = jwtUtil;
-        this.usuarioService = usuarioService;
-        this.rolService = rolService;
-        this.passwordEncoder = passwordEncoder;
     }
 
-    /**
-     * Endpoint de autenticación (login).
-     * Recibe credenciales, valida contra la BD y devuelve un JWT si son correctas.
-     *
-     * POST /auth/login
-     * Body: { "username": "...", "password": "..." }
-     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
-            // Spring Security valida las credenciales usando CustomUserDetailsService
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+            // Delega la validación a Spring Security (carga usuario + verifica BCrypt)
+            Authentication auth = authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getUsername(), request.getPassword())
             );
 
-            // Generamos el JWT a partir del UserDetails autenticado
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            UserDetails userDetails = (UserDetails) auth.getPrincipal();
             String token = jwtUtil.generateToken(userDetails);
 
-            return ResponseEntity.ok(new LoginResponse(token));
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", token);
+            response.put("username", userDetails.getUsername());
+            response.put("roles", userDetails.getAuthorities()
+                    .stream()
+                    .map(a -> a.getAuthority())
+                    .toList());
+
+            return ResponseEntity.ok(response);
 
         } catch (BadCredentialsException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Credenciales inválidas. Verifica usuario y contraseña.");
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Credenciales inválidas");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
         }
-    }
-
-    /**
-     * Endpoint de registro de nuevos usuarios.
-     * Asigna por defecto el rol CLIENTE; el rol puede cambiarse a través del parámetro opcional.
-     *
-     * POST /auth/registro
-     * Body: { "username": "...", "password": "..." }
-     * Param (opcional): rol=EMPLEADO|GERENTE|CLIENTE
-     */
-    @PostMapping("/registro")
-    public ResponseEntity<?> registro(@RequestBody LoginRequest request,
-                                      @RequestParam(defaultValue = "CLIENTE") String rol) {
-        // Verificar que el username no exista ya
-        if (usuarioService.findByUsername(request.getUsername()).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("El usuario '" + request.getUsername() + "' ya existe.");
-        }
-
-        // Buscar el rol solicitado en la BD
-        Optional<Rol> rolOpt = rolService.findByNombre(rol);
-        if (rolOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Rol no válido: " + rol + ". Opciones: CLIENTE, EMPLEADO, GERENTE");
-        }
-
-        // Crear y persistir el nuevo usuario con contraseña hasheada (BCrypt)
-        Usuario nuevo = new Usuario();
-        nuevo.setUsername(request.getUsername());
-        nuevo.setPassword(passwordEncoder.encode(request.getPassword())); // hashing seguro
-
-        Set<Rol> roles = new HashSet<>();
-        roles.add(rolOpt.get());
-        nuevo.setRoles(roles);
-
-        usuarioService.save(nuevo);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Usuario '" + request.getUsername() + "' registrado con rol " + rol);
     }
 }

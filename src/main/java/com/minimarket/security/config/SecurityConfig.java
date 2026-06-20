@@ -1,114 +1,142 @@
 package com.minimarket.security.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minimarket.security.filter.JwtAuthenticationFilter;
+import com.minimarket.security.handler.JwtAuthenticationEntryPoint;
 import com.minimarket.security.service.CustomUserDetailsService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
- * Configuración central de Spring Security.
+ * Configuración central de Spring Security para MiniMarket Plus.
  *
- * Estrategia adoptada:
- *  - Autenticación STATELESS via JWT (sin sesiones HTTP ni cookies).
- *  - CSRF deshabilitado (apropiado para APIs REST con JWT).
- *  - Roles: CLIENTE, EMPLEADO, GERENTE con restricciones por endpoint.
- *  - @EnableMethodSecurity habilita @PreAuthorize / @PostAuthorize en controllers.
+ * Estrategia: stateless con JWT.
+ *  - No se mantiene sesión en servidor (SessionCreationPolicy.STATELESS).
+ *  - CSRF deshabilitado (innecesario en APIs REST sin cookies de sesión).
+ *  - El filtro JwtAuthenticationFilter intercepta cada request antes del
+ *    UsernamePasswordAuthenticationFilter para poblar el SecurityContext.
+ *
+ * Roles definidos:
+ *  ROLE_ADMIN    → acceso total
+ *  ROLE_EMPLEADO → gestión de inventario, productos, categorías, ventas
+ *  ROLE_CLIENTE  → consulta de productos/categorías, gestión de su carrito
  */
 @Configuration
-@EnableMethodSecurity          // habilita anotaciones @PreAuthorize en los controllers
+@EnableMethodSecurity   // Habilita @PreAuthorize / @PostAuthorize en controllers
 public class SecurityConfig {
 
-    private final CustomUserDetailsService customUserDetailsService;
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomUserDetailsService userDetailsService;
+    private final JwtAuthenticationFilter jwtAuthFilter;
+    private final JwtAuthenticationEntryPoint jwtEntryPoint;
 
-    public SecurityConfig(CustomUserDetailsService customUserDetailsService,
-                          JwtAuthenticationFilter jwtAuthenticationFilter) {
-        this.customUserDetailsService = customUserDetailsService;
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    public SecurityConfig(CustomUserDetailsService userDetailsService,
+                          JwtAuthenticationFilter jwtAuthFilter,
+                          JwtAuthenticationEntryPoint jwtEntryPoint) {
+        this.userDetailsService = userDetailsService;
+        this.jwtAuthFilter = jwtAuthFilter;
+        this.jwtEntryPoint = jwtEntryPoint;
     }
 
-    /**
-     * Cadena de filtros de seguridad principal.
-     * Define qué endpoints son públicos y cuáles requieren roles específicos.
-     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // ── Deshabilitar CSRF: no necesario con JWT stateless ──────────────
-            .csrf(csrf -> csrf.disable())
+            // --- CSRF: innecesario en API REST stateless (sin cookies de sesión) ---
+            .csrf(AbstractHttpConfigurer::disable)
 
-            // ── Política de sesión: STATELESS (no se crean sesiones HTTP) ──────
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            // --- Sesión: STATELESS → no se crea ni usa HttpSession ---
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-            // ── Reglas de autorización por endpoint ───────────────────────────
+            // --- Entry point personalizado para errores 401/403 (JSON, no redirect) ---
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(jwtEntryPoint)
+                .accessDeniedHandler(accessDeniedHandler())
+            )
+
+            // --- Reglas de autorización por endpoint / rol ---
             .authorizeHttpRequests(auth -> auth
 
-                // Endpoints públicos: autenticación, registro y consola H2
-                .requestMatchers("/auth/**").permitAll()
-                .requestMatchers("/public/**").permitAll()
-                .requestMatchers("/h2-console/**").permitAll()
+                // Endpoints públicos (incluye /error para que AccessDeniedHandler responda 403)
+                .requestMatchers("/public/**", "/api/auth/**", "/error").permitAll()
 
-                // Gestión de usuarios y roles: solo GERENTE
-                .requestMatchers("/api/usuarios/**").hasAuthority("GERENTE")
+                // Consola H2 solo en desarrollo (ADMIN)
+                .requestMatchers("/h2-console/**").hasRole("ADMIN")
 
-                // Ventas y detalle de ventas: GERENTE y EMPLEADO
-                .requestMatchers("/api/ventas/**").hasAnyAuthority("GERENTE", "EMPLEADO")
-                .requestMatchers("/api/detalleventa/**").hasAnyAuthority("GERENTE", "EMPLEADO")
+                // Gestión de usuarios: solo ADMIN
+                .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
 
-                // Inventario: GERENTE y EMPLEADO
-                .requestMatchers("/api/inventario/**").hasAnyAuthority("GERENTE", "EMPLEADO")
+                // Inventario: ADMIN y EMPLEADO
+                .requestMatchers("/api/inventario/**").hasAnyRole("ADMIN", "EMPLEADO")
 
-                // Catálogo de categorías: todos los autenticados
-                .requestMatchers("/api/categorias/**").authenticated()
+                // Productos y categorías: lectura libre para autenticados, escritura solo ADMIN/EMPLEADO
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/productos/**")
+                    .hasAnyRole("ADMIN", "EMPLEADO", "CLIENTE")
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/categorias/**")
+                    .hasAnyRole("ADMIN", "EMPLEADO", "CLIENTE")
+                .requestMatchers("/api/productos/**").hasAnyRole("ADMIN", "EMPLEADO")
+                .requestMatchers("/api/categorias/**").hasAnyRole("ADMIN", "EMPLEADO")
 
-                // Catálogo de productos: todos los autenticados
-                .requestMatchers("/api/productos/**").authenticated()
+                // Carrito: CLIENTE y ADMIN
+                .requestMatchers("/api/carrito/**").hasAnyRole("ADMIN", "CLIENTE")
 
-                // Carrito: CLIENTE (y GERENTE para supervisión)
-                .requestMatchers("/api/carrito/**").hasAnyAuthority("CLIENTE", "GERENTE")
+                // Ventas y detalle: ADMIN, EMPLEADO, CLIENTE
+                .requestMatchers("/api/ventas/**").hasAnyRole("ADMIN", "EMPLEADO", "CLIENTE")
+                .requestMatchers("/api/detalle-ventas/**").hasAnyRole("ADMIN", "EMPLEADO")
 
                 // Cualquier otro endpoint requiere autenticación
                 .anyRequest().authenticated()
             )
 
-            // ── Desactivar formulario de login y HTTP Basic (usamos JWT) ──────
-            .formLogin(form -> form.disable())
-            .httpBasic(basic -> basic.disable())
+            // --- Agrega el filtro JWT antes del filtro de autenticación estándar ---
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
 
-            // ── Permitir frames de H2 Console (misma origen) ──────────────────
-            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
-
-            // ── Registrar nuestro filtro JWT ANTES del filtro estándar ─────────
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            // --- Cabeceras: permite frames para consola H2 (solo desarrollo) ---
+            .headers(h -> h.frameOptions(fo -> fo.sameOrigin()));
 
         return http.build();
     }
 
-    /**
-     * AuthenticationManager expuesto como Bean para uso en AuthController.
-     */
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig)
-            throws Exception {
-        return authConfig.getAuthenticationManager();
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        // BCrypt con factor de costo 12 (balance seguridad/rendimiento)
+        return new BCryptPasswordEncoder(12);
     }
 
     /**
-     * Encoder BCrypt para hashing de contraseñas.
-     * Factor de coste por defecto: 10 rondas (balance seguridad/rendimiento).
+     * Handler para errores 403 (usuario autenticado pero sin permisos suficientes).
+     * Devuelve JSON en lugar del redirect por defecto de Spring Security.
      */
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public AccessDeniedHandler accessDeniedHandler() {
+        return (request, response, ex) -> {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            Map<String, Object> body = new HashMap<>();
+            body.put("status", 403);
+            body.put("error", "Acceso denegado");
+            body.put("message", "No tienes permisos para acceder a este recurso.");
+            body.put("path", request.getServletPath());
+            new ObjectMapper().writeValue(response.getOutputStream(), body);
+        };
     }
 }

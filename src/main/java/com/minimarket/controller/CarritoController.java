@@ -4,12 +4,18 @@ import com.minimarket.entity.Carrito;
 import com.minimarket.service.CarritoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Gestión del carrito de compras.
+ * Accesible para ADMIN y CLIENTE.
+ */
 @RestController
 @RequestMapping("/api/carrito")
+@PreAuthorize("hasAnyRole('ADMIN','CLIENTE')")
 public class CarritoController {
 
     @Autowired

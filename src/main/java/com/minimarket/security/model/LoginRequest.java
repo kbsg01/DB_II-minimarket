@@ -1,7 +1,7 @@
 package com.minimarket.security.model;
 
 /**
- * DTO para recibir las credenciales de autenticación (login).
+ * DTO para las credenciales de autenticación en el endpoint /api/auth/login.
  */
 public class LoginRequest {
 

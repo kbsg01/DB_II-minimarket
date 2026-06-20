@@ -4,10 +4,16 @@ import com.minimarket.entity.Categoria;
 import com.minimarket.service.CategoriaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Gestión de categorías.
+ * GET  → todos los roles autenticados
+ * POST/PUT/DELETE → ADMIN y EMPLEADO
+ */
 @RestController
 @RequestMapping("/api/categorias")
 public class CategoriaController {
@@ -26,11 +32,13 @@ public class CategoriaController {
         return (categoria != null) ? ResponseEntity.ok(categoria) : ResponseEntity.notFound().build();
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','EMPLEADO')")
     @PostMapping
     public Categoria guardarCategoria(@RequestBody Categoria categoria) {
         return categoriaService.save(categoria);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','EMPLEADO')")
     @PutMapping("/{id}")
     public ResponseEntity<Categoria> actualizarCategoria(@PathVariable Long id, @RequestBody Categoria categoria) {
         Categoria categoriaExistente = categoriaService.findById(id);
@@ -41,6 +49,7 @@ public class CategoriaController {
         return ResponseEntity.notFound().build();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminarCategoria(@PathVariable Long id) {
         Categoria categoria = categoriaService.findById(id);

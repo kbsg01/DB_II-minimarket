@@ -1,70 +1,85 @@
 package com.minimarket.security.util;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
-import java.util.Base64;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
 
 /**
- * Utilidad para la generación y validación de JSON Web Tokens (JWT).
- * Utiliza el algoritmo HS256 con una clave secreta configurada externamente.
+ * Utilidad JWT: genera, valida y extrae información de tokens.
+ * Usa HMAC-SHA256 con clave derivada del application.properties.
  */
 @Component
 public class JwtUtil {
 
-    /** Clave secreta en Base64, inyectada desde application.properties */
     @Value("${jwt.secret}")
-    private String secretBase64;
+    private String secret;
 
-    /** Tiempo de vida del token en milisegundos, inyectado desde application.properties */
     @Value("${jwt.expiration}")
     private long expirationMs;
 
-    /**
-     * Deriva la SecretKey a partir del valor Base64 configurado.
-     * JJWT exige mínimo 256 bits (32 bytes) para HS256.
-     */
-    private SecretKey getSigningKey() {
-        byte[] keyBytes = Base64.getDecoder().decode(secretBase64);
-        return Keys.hmacShaKeyFor(keyBytes);
+    // ---- Generación --------------------------------------------------------
+
+    /** Genera un token firmado para el usuario autenticado. */
+    public String generateToken(UserDetails userDetails) {
+        Map<String, Object> claims = new HashMap<>();
+        // Incluir roles como claim adicional para auditoría
+        claims.put("roles", userDetails.getAuthorities()
+                .stream()
+                .map(a -> a.getAuthority())
+                .toList());
+        return buildToken(claims, userDetails.getUsername());
     }
 
-    /**
-     * Genera un JWT firmado con HS256.
-     *
-     * @param userDetails detalles del usuario autenticado
-     * @return token JWT compacto (header.payload.signature)
-     */
-    public String generateToken(UserDetails userDetails) {
-        // Extraemos los roles para incluirlos como claim personalizado
-        List<String> roles = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toList());
-
+    private String buildToken(Map<String, Object> extraClaims, String subject) {
         return Jwts.builder()
-                .subject(userDetails.getUsername())          // claim "sub"
-                .claim("roles", roles)                       // claim personalizado con roles
-                .issuedAt(new Date())                        // claim "iat"
-                .expiration(new Date(System.currentTimeMillis() + expirationMs)) // claim "exp"
-                .signWith(getSigningKey())                   // firma HS256
+                .claims(extraClaims)
+                .subject(subject)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expirationMs))
+                .signWith(getSigningKey())
                 .compact();
     }
 
+    // ---- Validación --------------------------------------------------------
+
     /**
-     * Extrae todos los claims del token JWT.
-     *
-     * @param token JWT compacto
-     * @return Claims del payload
+     * Valida que el token pertenezca al usuario y no esté expirado.
+     * Retorna false ante cualquier excepción JWT (firma inválida, malformado, etc.).
      */
+    public boolean validateToken(String token, UserDetails userDetails) {
+        try {
+            final String username = extractUsername(token);
+            return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    // ---- Extracción de claims ----------------------------------------------
+
+    public String extractUsername(String token) {
+        return extractClaim(token, Claims::getSubject);
+    }
+
+    public Date extractExpiration(String token) {
+        return extractClaim(token, Claims::getExpiration);
+    }
+
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+        return claimsResolver.apply(extractAllClaims(token));
+    }
+
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
@@ -73,45 +88,15 @@ public class JwtUtil {
                 .getPayload();
     }
 
-    /**
-     * Extrae el username (subject) del token.
-     *
-     * @param token JWT compacto
-     * @return username del usuario
-     */
-    public String extractUsername(String token) {
-        return extractAllClaims(token).getSubject();
-    }
-
-    /**
-     * Extrae la fecha de expiración del token.
-     *
-     * @param token JWT compacto
-     * @return fecha de expiración
-     */
-    public Date extractExpiration(String token) {
-        return extractAllClaims(token).getExpiration();
-    }
-
-    /**
-     * Verifica si el token ha expirado.
-     *
-     * @param token JWT compacto
-     * @return true si el token está expirado
-     */
     private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 
-    /**
-     * Valida que el token pertenezca al usuario y no haya expirado.
-     *
-     * @param token       JWT compacto
-     * @param userDetails detalles del usuario a comparar
-     * @return true si el token es válido
-     */
-    public boolean validateToken(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+    // ---- Clave criptográfica -----------------------------------------------
+
+    private SecretKey getSigningKey() {
+        // Asegura al menos 256 bits para HMAC-SHA256
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 }

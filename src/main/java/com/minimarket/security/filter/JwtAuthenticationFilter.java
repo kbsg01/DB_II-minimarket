@@ -11,19 +11,15 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
 /**
- * Filtro de seguridad que intercepta cada request HTTP para validar el JWT.
- * Se ejecuta UNA sola vez por request (OncePerRequestFilter) y actúa
- * ANTES de UsernamePasswordAuthenticationFilter en la cadena de Spring Security.
- *
- * Flujo:
- *  1. Leer el header "Authorization: Bearer <token>"
- *  2. Extraer y validar el token con JwtUtil
- *  3. Cargar UserDetails y poblar el SecurityContext si el token es válido
+ * Filtro JWT que se ejecuta una vez por request.
+ * Extrae el token del header Authorization: Bearer <token>,
+ * lo valida y carga el contexto de seguridad si es válido.
  */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -39,47 +35,38 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
 
-        // 1. Obtener el header de autorización
-        final String authHeader = request.getHeader("Authorization");
+        String token = extractToken(request);
 
-        // Si no hay header o no empieza con "Bearer ", continuar sin autenticar
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+        // Solo procesa si hay token y no hay autenticación previa en el contexto
+        if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            try {
+                String username = jwtUtil.extractUsername(token);
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-        // 2. Extraer el token (quitar el prefijo "Bearer ")
-        final String token = authHeader.substring(7);
-        String username = null;
-
-        try {
-            username = jwtUtil.extractUsername(token);
-        } catch (Exception e) {
-            // Token malformado, expirado o con firma inválida → continuar sin autenticar
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        // 3. Si hay username y el SecurityContext aún no tiene autenticación
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-
-            // 4. Validar token: firma + expiración + username coinciden
-            if (jwtUtil.validateToken(token, userDetails)) {
-                // 5. Crear el objeto de autenticación y poblarlo en el SecurityContext
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,                          // sin credencial: ya autenticado via JWT
-                                userDetails.getAuthorities()   // roles del usuario
-                        );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                if (jwtUtil.validateToken(token, userDetails)) {
+                    UsernamePasswordAuthenticationToken auth =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails, null, userDetails.getAuthorities());
+                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                }
+            } catch (Exception ignored) {
+                // Token inválido → continúa sin autenticar; Spring Security rechazará el acceso
             }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /** Extrae el JWT del header Authorization si tiene el prefijo "Bearer ". */
+    private String extractToken(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
     }
 }
