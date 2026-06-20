@@ -1,5 +1,6 @@
 package com.minimarket.security.config;
 
+import com.minimarket.security.filter.JwtAuthenticationFilter;
 import com.minimarket.security.service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -7,117 +8,107 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * Configuración central de Spring Security para el sistema Minimarket.
+ * Configuración central de Spring Security.
  *
- * Estrategia seleccionada: Autenticación con nombre de usuario y contraseña
- * vía base de datos (DaoAuthenticationProvider + CustomUserDetailsService + Oracle DB).
- *
- * Evaluación Desarrollo Backend II – PBY2202 – Semana 1
+ * Estrategia adoptada:
+ *  - Autenticación STATELESS via JWT (sin sesiones HTTP ni cookies).
+ *  - CSRF deshabilitado (apropiado para APIs REST con JWT).
+ *  - Roles: CLIENTE, EMPLEADO, GERENTE con restricciones por endpoint.
+ *  - @EnableMethodSecurity habilita @PreAuthorize / @PostAuthorize en controllers.
  */
 @Configuration
-@EnableWebSecurity
-@EnableMethodSecurity  // Habilita @PreAuthorize y @Secured a nivel de método/servicio
+@EnableMethodSecurity          // habilita anotaciones @PreAuthorize en los controllers
 public class SecurityConfig {
 
-    private final CustomUserDetailsService userDetailsService;
+    private final CustomUserDetailsService customUserDetailsService;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    public SecurityConfig(CustomUserDetailsService userDetailsService) {
-        this.userDetailsService = userDetailsService;
+    public SecurityConfig(CustomUserDetailsService customUserDetailsService,
+                          JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.customUserDetailsService = customUserDetailsService;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
+    /**
+     * Cadena de filtros de seguridad principal.
+     * Define qué endpoints son públicos y cuáles requieren roles específicos.
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // ── 1. Cabeceras de seguridad HTTP (mitigación OWASP) ──────────────────────
-            .headers(headers -> headers
-                // X-Frame-Options: DENY — previene clickjacking
-                .frameOptions(frame -> frame.deny())
-                // X-Content-Type-Options: nosniff — previene MIME-sniffing (vector XSS)
-                .contentTypeOptions(ct -> {})
-                // Strict-Transport-Security — fuerza HTTPS en producción
-                .httpStrictTransportSecurity(hsts -> hsts
-                    .includeSubDomains(true)
-                    .maxAgeInSeconds(31_536_000))  // 1 año
-                // Referrer-Policy — controla información de origen en requests externos
-                .referrerPolicy(ref -> ref.policy(
-                    ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
-            )
-
-            // ── 2. CSRF — deshabilitado para API REST sin estado ──────────────────────
-            // Justificación: la API REST usa autenticación stateless (sin cookies persistentes
-            // entre requests). El form login emite sesión solo para el proceso de autenticación.
+            // ── Deshabilitar CSRF: no necesario con JWT stateless ──────────────
             .csrf(csrf -> csrf.disable())
 
-            // ── 3. Autorización basada en roles (RBAC) ────────────────────────────────
+            // ── Política de sesión: STATELESS (no se crean sesiones HTTP) ──────
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+            // ── Reglas de autorización por endpoint ───────────────────────────
             .authorizeHttpRequests(auth -> auth
 
-                // Recursos públicos — sin autenticación
-                .requestMatchers("/public/**", "/auth/**").permitAll()
+                // Endpoints públicos: autenticación, registro y consola H2
+                .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/public/**").permitAll()
+                .requestMatchers("/h2-console/**").permitAll()
 
-                // GERENTE — acceso total: gestión de usuarios y administración del sistema
-                .requestMatchers("/api/usuarios/**").hasRole("GERENTE")
+                // Gestión de usuarios y roles: solo GERENTE
+                .requestMatchers("/api/usuarios/**").hasAuthority("GERENTE")
 
-                // GERENTE + EMPLEADO — gestión operativa del minimarket
-                .requestMatchers("/api/inventario/**").hasAnyRole("GERENTE", "EMPLEADO")
-                .requestMatchers("/api/ventas/**").hasAnyRole("GERENTE", "EMPLEADO")
-                .requestMatchers("/api/detalle-venta/**").hasAnyRole("GERENTE", "EMPLEADO")
+                // Ventas y detalle de ventas: GERENTE y EMPLEADO
+                .requestMatchers("/api/ventas/**").hasAnyAuthority("GERENTE", "EMPLEADO")
+                .requestMatchers("/api/detalleventa/**").hasAnyAuthority("GERENTE", "EMPLEADO")
 
-                // Todos los roles autenticados — catálogo y carrito de compras
-                .requestMatchers("/api/productos/**").hasAnyRole("GERENTE", "EMPLEADO", "CLIENTE")
-                .requestMatchers("/api/categorias/**").hasAnyRole("GERENTE", "EMPLEADO", "CLIENTE")
-                .requestMatchers("/api/carrito/**").hasAnyRole("GERENTE", "EMPLEADO", "CLIENTE")
+                // Inventario: GERENTE y EMPLEADO
+                .requestMatchers("/api/inventario/**").hasAnyAuthority("GERENTE", "EMPLEADO")
 
-                // Cualquier otra ruta requiere autenticación válida
+                // Catálogo de categorías: todos los autenticados
+                .requestMatchers("/api/categorias/**").authenticated()
+
+                // Catálogo de productos: todos los autenticados
+                .requestMatchers("/api/productos/**").authenticated()
+
+                // Carrito: CLIENTE (y GERENTE para supervisión)
+                .requestMatchers("/api/carrito/**").hasAnyAuthority("CLIENTE", "GERENTE")
+
+                // Cualquier otro endpoint requiere autenticación
                 .anyRequest().authenticated()
             )
 
-            // ── 4. Formulario de autenticación con usuario y contraseña ───────────────
-            // Método seleccionado para Semana 1: username/password vía Oracle DB
-            .formLogin(form -> form
-                .loginPage("/auth/login")              // GET — muestra el formulario de login
-                .loginProcessingUrl("/auth/login")     // POST — Spring procesa las credenciales
-                .defaultSuccessUrl("/api/productos", true)
-                .failureUrl("/auth/login?error=true")
-                .permitAll()
-            )
+            // ── Desactivar formulario de login y HTTP Basic (usamos JWT) ──────
+            .formLogin(form -> form.disable())
+            .httpBasic(basic -> basic.disable())
 
-            // ── 5. Logout seguro ──────────────────────────────────────────────────────
-            .logout(logout -> logout
-                .logoutUrl("/auth/logout")
-                .logoutSuccessUrl("/public/index")
-                .invalidateHttpSession(true)           // Invalida la sesión de Spring Security
-                .deleteCookies("JSESSIONID")           // Elimina la cookie de sesión del cliente
-                .clearAuthentication(true)
-                .permitAll()
-            );
+            // ── Permitir frames de H2 Console (misma origen) ──────────────────
+            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+
+            // ── Registrar nuestro filtro JWT ANTES del filtro estándar ─────────
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     /**
-     * AuthenticationManager expuesto como Bean para inyección en
-     * controladores de autenticación personalizados.
+     * AuthenticationManager expuesto como Bean para uso en AuthController.
      */
     @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig)
+            throws Exception {
+        return authConfig.getAuthenticationManager();
     }
 
     /**
-     * BCryptPasswordEncoder con strength=12.
-     * Recomendación NIST SP 800-63B: factor de coste que haga cada
-     * verificación ~100ms en hardware moderno. Strength 12 cumple este criterio.
+     * Encoder BCrypt para hashing de contraseñas.
+     * Factor de coste por defecto: 10 rondas (balance seguridad/rendimiento).
      */
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(12);
+        return new BCryptPasswordEncoder();
     }
 }
