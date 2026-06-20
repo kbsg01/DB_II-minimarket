@@ -420,17 +420,19 @@ InventarioServiceTest contiene 13 pruebas: 8 pruebas del método `registrarMovim
 
 *(Reporte generado con `mvnw verify` — ver `target/site/jacoco/index.html`)*
 
-Reporte JaCoCo CSV (`target/site/jacoco/jacoco.csv`):
+Reporte JaCoCo CSV (`target/site/jacoco/jacoco.csv`) — datos reales de la ejecución:
 
 | Clase | Líneas cubiertas | Líneas total | Cobertura | Estado |
 |-------|-----------------|--------------|-----------|--------|
-| `CarritoServiceImpl` | ~25 | 26 | ~96% | ✅ Cumple requisito |
-| `InventarioServiceImpl` | ~13 | 14 | ~93% | ✅ Cumple requisito |
-| `Carrito` (entity) | 10 | 13 | 77% | (solo referencia) |
-| `Inventario` (entity) | 10 | 16 | 62% | (solo referencia) |
-| **BUNDLE (total)** | **~58** | **~69** | **~84%** | **✅ ≥80%** |
+| `CarritoServiceImpl` | 26 | 26 | **100%** | ✅ Cumple requisito |
+| `InventarioServiceImpl` | 14 | 14 | **100%** | ✅ Cumple requisito |
+| `Carrito` (entity) | 10 | 13 | 76.9% | (incluida en BUNDLE) |
+| `Inventario` (entity) | 10 | 16 | 62.5% | (incluida en BUNDLE) |
+| **BUNDLE (total)** | **60** | **69** | **87%** | **✅ ≥80%** |
 
-*(Reporte HTML disponible en `target/site/jacoco/index.html` tras ejecutar `mvnw verify`)*
+Salida del plugin JaCoCo: `[INFO] All coverage checks have been met.`
+
+`BUILD SUCCESS` — Total time: 7.797 s — Tests run: 55, Failures: 0, Errors: 0, Skipped: 0
 
 ---
 
@@ -447,7 +449,7 @@ En la Semana 5 (S5), se continuó la ejecución integrando las ramas de las sema
 - `CarritoServiceImpl.agregarProducto()` con lógica upsert y validaciones de stock
 - `InventarioServiceImpl.registrarMovimiento()` con validaciones de datos completos
 - Clases de excepción personalizadas: `StockInsuficienteException`, `DatosIncompletosException`
-- 16 nuevas pruebas unitarias (8 para Carrito, 8 para Inventario)
+- 27 nuevas pruebas unitarias (14 para CarritoService, 13 para InventarioService)
 - Configuración de JaCoCo con umbral mínimo de 80% de cobertura de líneas
 
 ### 2. Análisis de los resultados obtenidos
