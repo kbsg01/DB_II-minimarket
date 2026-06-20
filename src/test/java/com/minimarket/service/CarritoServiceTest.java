@@ -182,4 +182,21 @@ public class CarritoServiceTest {
 
         assertEquals(1, resultado.size());
     }
+
+    @Test
+    void agregarProductoExistenteActualizaCantidad() {
+        Carrito existente = new Carrito();
+        existente.setUsuario(usuario);
+        existente.setProducto(producto);
+        existente.setCantidad(2);
+
+        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+        when(carritoRepository.findByUsuarioIdAndProductoId(1L, 1L)).thenReturn(Optional.of(existente));
+        when(carritoRepository.save(any(Carrito.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Carrito resultado = carritoService.agregarProducto(1L, 1L, 3);
+
+        assertEquals(5, resultado.getCantidad());
+    }
 }
