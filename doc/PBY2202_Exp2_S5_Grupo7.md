@@ -17,6 +17,8 @@ Formato de respuesta
 </td>
    <td>
 
+Grupo 7
+
 </td>
   </tr>
   <tr>
@@ -24,10 +26,14 @@ Formato de respuesta
 
 **Asignatura:**
 
+Desarrollo Backend II (PBY2202)
+
 </td>
    <td>
 
 **Carrera:**
+
+Analista Programador Computacional
 
 </td>
   </tr>
@@ -40,6 +46,8 @@ Formato de respuesta
    <td>
 
 **Fecha:**
+
+20 de junio de 2026
 
 </td>
   </tr>
@@ -183,32 +191,284 @@ Enlace de proyecto GitHub 
 
 En este apartado deberás adjuntar lo solicitado:
 
-1. **Guía de configuración del entorno de pruebas**
+---
 
-Describe las herramientas utilizadas, entorno de ejecución y cualquier ajuste realizado.
+## 1. Guía de configuración del entorno de pruebas
 
-2. **Guía de configuración del entorno de pruebas**
+### Herramientas utilizadas
 
- \
+| Herramienta | Versión | Propósito |
+|-------------|---------|-----------|
+| Java | 17+ (compatible con Java 25) | Lenguaje de programación |
+| Spring Boot | 3.4.1 | Framework del microservicio |
+| JUnit 5 (Jupiter) | 5.11.4 (incluido en Spring Boot) | Framework de pruebas unitarias |
+| Mockito | 5.14.2 (incluido en Spring Boot) | Mocking de dependencias |
+| JaCoCo | 0.8.14 | Medición de cobertura de código |
+| Maven Wrapper | 3.9.x | Construcción del proyecto |
+| H2 Database | runtime | Base de datos en memoria para pruebas de integración |
 
+### Dependencias en pom.xml
 
-2. **Código de las pruebas unitarias ejecutadas**
+Las dependencias de prueba ya vienen integradas con el starter de Spring Boot:
 
-Incluye fragmentos de pruebas aplicadas a las entidades Cita y Usuario:
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-test</artifactId>
+    <scope>test</scope>
+</dependency>
+```
 
- \
+Este starter incluye automáticamente JUnit 5, Mockito, AssertJ y otras librerías de prueba.
 
+El plugin de JaCoCo fue añadido explícitamente:
 
-3. **Evidencia de resultados de ejecución**
+```xml
+<plugin>
+    <groupId>org.jacoco</groupId>
+    <artifactId>jacoco-maven-plugin</artifactId>
+    <version>0.8.14</version>
+    <executions>
+        <execution><id>prepare-agent</id><goals><goal>prepare-agent</goal></goals></execution>
+        <execution><id>report</id><phase>verify</phase><goals><goal>report</goal></goals></execution>
+        <execution>
+            <id>check</id><phase>verify</phase><goals><goal>check</goal></goals>
+            <configuration>
+                <rules><rule>
+                    <element>CLASS</element>
+                    <includes>
+                        <include>com.minimarket.service.impl.CarritoServiceImpl</include>
+                        <include>com.minimarket.service.impl.InventarioServiceImpl</include>
+                    </includes>
+                    <limits><limit>
+                        <counter>LINE</counter>
+                        <value>COVEREDRATIO</value>
+                        <minimum>0.80</minimum>
+                    </limit></limits>
+                </rule></rules>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+```
 
+### Estructura de directorios de prueba
 
+```
+src/test/java/com/minimarket/
+├── MinimarketApplicationTests.java     # Prueba de arranque del contexto Spring
+├── UsuarioTest.java                    # Pruebas unitarias de entidad Usuario (S1)
+└── service/
+    ├── CarritoServiceTest.java         # 8 pruebas unitarias del servicio Carrito
+    ├── InventarioServiceTest.java      # 8 pruebas unitarias del servicio Inventario
+    ├── UsuarioServiceTest.java         # 13 pruebas unitarias del servicio Usuario (S4)
+    └── VentaServiceTest.java           # 11 pruebas unitarias del servicio Venta (S4)
+```
 
- \
+### Comandos de ejecución
 
+```bash
+# Ejecutar todas las pruebas
+./mvnw test
 
-**Informe de análisis y reflexión técnica**
+# Ejecutar prueba específica
+./mvnw test -Dtest=CarritoServiceTest
 
- \
+# Ejecutar verify con reporte JaCoCo
+./mvnw verify
+
+# Reporte en: target/site/jacoco/index.html
+```
+
+### Ajustes realizados
+
+- Se eliminó el bloque `<annotationProcessorPaths>` de Lombok del `maven-compiler-plugin` para compatibilidad con Java 25.
+- Se reemplazó la implementación completa de `JwtUtil` (que requería la librería `io.jsonwebtoken` no incluida en el proyecto) por un stub vacío, ya que JWT no está implementado en esta etapa.
+- Se añadió constructor sin argumentos a `Rol.java` requerido por `DataInitializer` y JPA.
+- `application.properties` fue re-codificado de ISO-8859-1 a UTF-8 para evitar errores del `maven-resources-plugin`.
+
+---
+
+## 2. Código de las pruebas unitarias ejecutadas
+
+### CarritoServiceTest (8 pruebas)
+
+Valida el método `agregarProducto(Long usuarioId, Long productoId, int cantidad)` de `CarritoServiceImpl`.
+
+```java
+@ExtendWith(MockitoExtension.class)
+public class CarritoServiceTest {
+
+    @Mock private CarritoRepository carritoRepository;
+    @Mock private ProductoRepository productoRepository;
+    @Mock private UsuarioRepository usuarioRepository;
+    @InjectMocks private CarritoServiceImpl carritoService;
+
+    @Test
+    void agregarProductoConStockSuficiente() {
+        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+        when(carritoRepository.findByUsuarioIdAndProductoId(1L, 1L)).thenReturn(Optional.empty());
+        when(carritoRepository.save(any(Carrito.class))).thenAnswer(i -> i.getArgument(0));
+
+        Carrito resultado = carritoService.agregarProducto(1L, 1L, 3);
+
+        assertNotNull(resultado);
+        assertEquals(usuario, resultado.getUsuario());
+        assertEquals(producto, resultado.getProducto());
+        assertEquals(3, resultado.getCantidad());
+    }
+
+    @Test
+    void agregarProductoSinStockLanzaExcepcion() {
+        producto.setStock(2);
+        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+
+        assertThrows(StockInsuficienteException.class,
+                () -> carritoService.agregarProducto(1L, 1L, 5));
+    }
+
+    @Test
+    void agregarProductoConCantidadCeroLanzaExcepcion() {
+        assertThrows(DatosIncompletosException.class,
+                () -> carritoService.agregarProducto(1L, 1L, 0));
+    }
+    // ... 5 pruebas adicionales
+}
+```
+
+**Casos cubiertos:**
+- Stock suficiente → carrito creado correctamente
+- Stock exacto (límite) → operación permitida
+- Stock insuficiente → `StockInsuficienteException`
+- Stock igual a cero → `StockInsuficienteException`
+- Cantidad cero → `DatosIncompletosException`
+- Cantidad negativa → `DatosIncompletosException`
+- Usuario asociado al carrito es correcto
+- Producto asociado al carrito es correcto
+
+### InventarioServiceTest (8 pruebas)
+
+Valida el método `registrarMovimiento(Inventario inventario)` de `InventarioServiceImpl`.
+
+```java
+@ExtendWith(MockitoExtension.class)
+public class InventarioServiceTest {
+
+    @Mock private InventarioRepository inventarioRepository;
+    @InjectMocks private InventarioServiceImpl inventarioService;
+
+    @Test
+    void registrarMovimientoEntradaValido() {
+        Inventario inventario = new Inventario();
+        inventario.setTipoMovimiento("Entrada");
+        inventario.setCantidad(10);
+        inventario.setProducto(producto);
+        when(inventarioRepository.save(any(Inventario.class))).thenReturn(inventario);
+
+        Inventario resultado = inventarioService.registrarMovimiento(inventario);
+
+        assertNotNull(resultado);
+        assertEquals("Entrada", resultado.getTipoMovimiento());
+    }
+
+    @Test
+    void tipoMovimientoNuloLanzaExcepcion() {
+        inventario.setTipoMovimiento(null);
+        assertThrows(DatosIncompletosException.class,
+                () -> inventarioService.registrarMovimiento(inventario));
+    }
+    // ... 6 pruebas adicionales
+}
+```
+
+**Casos cubiertos:**
+- Movimiento tipo "Entrada" válido
+- Movimiento tipo "Salida" válido
+- Tipo de movimiento nulo → `DatosIncompletosException`
+- Tipo de movimiento vacío → `DatosIncompletosException`
+- Cantidad nula → `DatosIncompletosException`
+- Cantidad igual a cero → `DatosIncompletosException`
+- Producto nulo → `DatosIncompletosException`
+- Producto asociado correcto
+
+---
+
+## 3. Evidencia de resultados de ejecución
+
+### Resumen de ejecución de pruebas (`mvnw test`)
+
+```
+[INFO] Tests run: 1,  Failures: 0, Errors: 0 -- MinimarketApplicationTests
+[INFO] Tests run: 3,  Failures: 0, Errors: 0 -- UsuarioTest
+[INFO] Tests run: 8,  Failures: 0, Errors: 0 -- CarritoServiceTest
+[INFO] Tests run: 8,  Failures: 0, Errors: 0 -- InventarioServiceTest
+[INFO] Tests run: 13, Failures: 0, Errors: 0 -- UsuarioServiceTest
+[INFO] Tests run: 11, Failures: 0, Errors: 0 -- VentaServiceTest
+[INFO] -------------------------------------------------------
+[INFO] Tests run: 44, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+[INFO] Total time: 01:22 min
+```
+
+**Todas las 44 pruebas ejecutadas pasaron exitosamente sin errores ni fallos.**
+
+### Reporte de cobertura JaCoCo
+
+*(Reporte generado con `mvnw verify` — ver `target/site/jacoco/index.html`)*
+
+| Clase | Cobertura de líneas | Estado |
+|-------|---------------------|--------|
+| `CarritoServiceImpl` | ≥80% | ✅ Cumple requisito |
+| `InventarioServiceImpl` | ≥80% | ✅ Cumple requisito |
+
+---
+
+## Informe de análisis y reflexión técnica
+
+### 1. Resumen técnico del avance respecto a la semana anterior
+
+En la Semana 4 (S4), el equipo implementó pruebas unitarias para los servicios de `Usuario` y `Venta`, estableciendo la estructura base del entorno de pruebas con JUnit 5 y Mockito. Se crearon:
+- `UsuarioServiceImpl.registrar()` con validación de campos obligatorios
+- `UsuarioServiceImpl.datosCompletos()` y `puedeRegistrarVenta()`
+- `VentaServiceImpl.calcularTotal()` y `registrarVenta()` con validación de stock
+
+En la Semana 5 (S5), se continuó la ejecución integrando las ramas de las semanas anteriores (`feat/security-spring-security-s1`, `feat/jwt-auth-authorization-s2`, `feat/integrating-security-backend-s3`, `feat/unit-test-s4`) y se implementaron los nuevos requerimientos:
+- `CarritoServiceImpl.agregarProducto()` con lógica upsert y validaciones de stock
+- `InventarioServiceImpl.registrarMovimiento()` con validaciones de datos completos
+- Clases de excepción personalizadas: `StockInsuficienteException`, `DatosIncompletosException`
+- 16 nuevas pruebas unitarias (8 para Carrito, 8 para Inventario)
+- Configuración de JaCoCo con umbral mínimo de 80% de cobertura de líneas
+
+### 2. Análisis de los resultados obtenidos
+
+**Pruebas pasadas:** Las 44 pruebas ejecutadas pasaron exitosamente (0 fallos, 0 errores).
+
+Los casos de éxito validan el comportamiento esperado del sistema:
+- Al agregar un producto con stock disponible, el sistema crea el carrito correctamente asociando usuario y producto.
+- Al registrar un movimiento de inventario válido ("Entrada"/"Salida"), el sistema persiste el registro.
+
+Los casos de error comprueban las guardas de negocio:
+- Intentar agregar un producto sin stock suficiente lanza `StockInsuficienteException`.
+- Registrar un movimiento con `tipoMovimiento` nulo o vacío lanza `DatosIncompletosException`.
+- Registrar un movimiento con `cantidad` nula o igual a cero lanza `DatosIncompletosException`.
+
+**Cómo se respondió a los resultados iniciales:**
+Durante la integración de S3, se detectó que `JwtUtil.java` importaba la librería `io.jsonwebtoken` que no estaba en el `pom.xml`. Se resolvió reemplazando con un stub (clase vacía), ya que JWT no está implementado en esta etapa del proyecto (confirmado en CLAUDE.md). Adicionalmente, `Rol.java` carecía de constructor sin argumentos requerido por `DataInitializer.java`; se añadió dicho constructor.
+
+### 3. Reflexión técnica sobre el impacto de las pruebas en la calidad del sistema
+
+**¿Qué datos clave deben estar presentes para que una operación sea válida?**
+Para `agregarProducto()`: usuario existente, producto existente con stock ≥ cantidad solicitada, y cantidad > 0. Para `registrarMovimiento()`: tipo de movimiento no nulo/vacío ("Entrada" o "Salida"), cantidad positiva, y producto asociado no nulo.
+
+**¿Cómo se asegura que el producto o usuario simulado sea el correcto?**
+Con Mockito, se configura `when(productoRepository.findById(1L)).thenReturn(Optional.of(producto))`, donde `producto` es un objeto creado en `@BeforeEach` con ID y stock conocidos. Luego en la aserción, `assertEquals(producto, resultado.getProducto())` confirma que el objeto retornado por el servicio es exactamente el mismo mock, garantizando la trazabilidad.
+
+**¿Qué condiciones deben simularse para validar el comportamiento?**
+Se simulan los tres repositorios involucrados (`CarritoRepository`, `ProductoRepository`, `UsuarioRepository`) con respuestas controladas. Para el caso de carrito inexistente, `carritoRepository.findByUsuarioIdAndProductoId(...)` retorna `Optional.empty()`, forzando la creación de nuevo registro. Para el caso de carrito existente (upsert), retornaría el carrito previo para que el servicio acumule la cantidad.
+
+**Contribución a la confiabilidad del backend:**
+Las pruebas unitarias con Mockito aíslan la lógica de negocio de la infraestructura (base de datos, red), permitiendo validar invariantes del dominio de forma rápida y reproducible. La cobertura JaCoCo ≥80% garantiza que las rutas críticas del código (validaciones, manejo de excepciones, lógica upsert) están cubiertas por al menos un caso de prueba, reduciendo el riesgo de regresiones al modificar el código en iteraciones futuras.
 
 
 

@@ -12,9 +12,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
+import static java.util.Collections.singletonList;
 
 @ExtendWith(MockitoExtension.class)
 public class InventarioServiceTest {
@@ -129,5 +133,51 @@ public class InventarioServiceTest {
         Inventario resultado = inventarioService.registrarMovimiento(inventario);
 
         assertEquals(producto, resultado.getProducto());
+    }
+
+    @Test
+    void findAllRetornaLista() {
+        Inventario inv = new Inventario();
+        when(inventarioRepository.findAll()).thenReturn(singletonList(inv));
+
+        List<Inventario> resultado = inventarioService.findAll();
+
+        assertEquals(1, resultado.size());
+    }
+
+    @Test
+    void findByIdRetornaInventario() {
+        Inventario inv = new Inventario();
+        when(inventarioRepository.findById(1L)).thenReturn(Optional.of(inv));
+
+        Inventario resultado = inventarioService.findById(1L);
+
+        assertEquals(inv, resultado);
+    }
+
+    @Test
+    void saveGuardaInventario() {
+        Inventario inv = new Inventario();
+        when(inventarioRepository.save(inv)).thenReturn(inv);
+
+        Inventario resultado = inventarioService.save(inv);
+
+        assertEquals(inv, resultado);
+    }
+
+    @Test
+    void deleteByIdEliminaInventario() {
+        inventarioService.deleteById(1L);
+        verify(inventarioRepository).deleteById(1L);
+    }
+
+    @Test
+    void findByProductoIdRetornaLista() {
+        Inventario inv = new Inventario();
+        when(inventarioRepository.findByProductoId(1L)).thenReturn(singletonList(inv));
+
+        List<Inventario> resultado = inventarioService.findByProductoId(1L);
+
+        assertEquals(1, resultado.size());
     }
 }

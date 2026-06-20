@@ -16,11 +16,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
+import static java.util.Collections.singletonList;
 
 @ExtendWith(MockitoExtension.class)
 public class CarritoServiceTest {
@@ -133,5 +135,51 @@ public class CarritoServiceTest {
         Carrito resultado = carritoService.agregarProducto(1L, 1L, 2);
 
         assertEquals(producto, resultado.getProducto());
+    }
+
+    @Test
+    void findAllRetornaLista() {
+        Carrito c = new Carrito();
+        when(carritoRepository.findAll()).thenReturn(singletonList(c));
+
+        List<Carrito> resultado = carritoService.findAll();
+
+        assertEquals(1, resultado.size());
+    }
+
+    @Test
+    void findByIdRetornaCarrito() {
+        Carrito c = new Carrito();
+        when(carritoRepository.findById(1L)).thenReturn(Optional.of(c));
+
+        Carrito resultado = carritoService.findById(1L);
+
+        assertEquals(c, resultado);
+    }
+
+    @Test
+    void saveGuardaCarrito() {
+        Carrito c = new Carrito();
+        when(carritoRepository.save(c)).thenReturn(c);
+
+        Carrito resultado = carritoService.save(c);
+
+        assertEquals(c, resultado);
+    }
+
+    @Test
+    void deleteByIdEliminaCarrito() {
+        carritoService.deleteById(1L);
+        verify(carritoRepository).deleteById(1L);
+    }
+
+    @Test
+    void findByUsuarioIdRetornaLista() {
+        Carrito c = new Carrito();
+        when(carritoRepository.findByUsuarioId(1L)).thenReturn(singletonList(c));
+
+        List<Carrito> resultado = carritoService.findByUsuarioId(1L);
+
+        assertEquals(1, resultado.size());
     }
 }
