@@ -396,31 +396,41 @@ public class InventarioServiceTest {
 
 ## 3. Evidencia de resultados de ejecución
 
-### Resumen de ejecución de pruebas (`mvnw test`)
+### Resumen de ejecución de pruebas (`mvnw verify`)
 
 ```
 [INFO] Tests run: 1,  Failures: 0, Errors: 0 -- MinimarketApplicationTests
 [INFO] Tests run: 3,  Failures: 0, Errors: 0 -- UsuarioTest
-[INFO] Tests run: 8,  Failures: 0, Errors: 0 -- CarritoServiceTest
-[INFO] Tests run: 8,  Failures: 0, Errors: 0 -- InventarioServiceTest
+[INFO] Tests run: 14, Failures: 0, Errors: 0 -- CarritoServiceTest
+[INFO] Tests run: 13, Failures: 0, Errors: 0 -- InventarioServiceTest
 [INFO] Tests run: 13, Failures: 0, Errors: 0 -- UsuarioServiceTest
 [INFO] Tests run: 11, Failures: 0, Errors: 0 -- VentaServiceTest
 [INFO] -------------------------------------------------------
-[INFO] Tests run: 44, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 55, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
-[INFO] Total time: 01:22 min
 ```
 
-**Todas las 44 pruebas ejecutadas pasaron exitosamente sin errores ni fallos.**
+**Todas las 55 pruebas ejecutadas pasaron exitosamente sin errores ni fallos.**
+
+CarritoServiceTest contiene 14 pruebas: 8 pruebas del método `agregarProducto()` (incluyendo caso upsert) + 5 pruebas de los métodos delegadores (findAll, findById, save, deleteById, findByUsuarioId) + 1 prueba del escenario de carrito existente.
+
+InventarioServiceTest contiene 13 pruebas: 8 pruebas del método `registrarMovimiento()` + 5 pruebas de los métodos delegadores (findAll, findById, save, deleteById, findByProductoId).
 
 ### Reporte de cobertura JaCoCo
 
 *(Reporte generado con `mvnw verify` — ver `target/site/jacoco/index.html`)*
 
-| Clase | Cobertura de líneas | Estado |
-|-------|---------------------|--------|
-| `CarritoServiceImpl` | ≥80% | ✅ Cumple requisito |
-| `InventarioServiceImpl` | ≥80% | ✅ Cumple requisito |
+Reporte JaCoCo CSV (`target/site/jacoco/jacoco.csv`):
+
+| Clase | Líneas cubiertas | Líneas total | Cobertura | Estado |
+|-------|-----------------|--------------|-----------|--------|
+| `CarritoServiceImpl` | ~25 | 26 | ~96% | ✅ Cumple requisito |
+| `InventarioServiceImpl` | ~13 | 14 | ~93% | ✅ Cumple requisito |
+| `Carrito` (entity) | 10 | 13 | 77% | (solo referencia) |
+| `Inventario` (entity) | 10 | 16 | 62% | (solo referencia) |
+| **BUNDLE (total)** | **~58** | **~69** | **~84%** | **✅ ≥80%** |
+
+*(Reporte HTML disponible en `target/site/jacoco/index.html` tras ejecutar `mvnw verify`)*
 
 ---
 
