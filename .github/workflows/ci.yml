@@ -83,9 +83,9 @@ jobs:
             # Esperar y verificar que arrancó correctamente
             sleep 15
             if sudo systemctl is-active --quiet minimarket; then
-              echo "✅ Servicio activo"
+              echo "Servicio activo"
             else
-              echo "❌ El servicio no arrancó — revisa los logs:"
+              echo "El servicio no arrancó — revisa los logs:"
               sudo journalctl -u minimarket --no-pager -n 30
               exit 1
             fi
@@ -98,8 +98,8 @@ jobs:
             "http://${{ secrets.EC2_HOST }}:8080/public/index" || echo "000")
           echo "HTTP status: ${HTTP_CODE}"
           if [[ "${HTTP_CODE}" == "200" ]]; then
-            echo "✅ App respondiendo correctamente"
+            echo "App respondiendo correctamente"
           else
-            echo "❌ App no responde en /public/index (código ${HTTP_CODE})"
+            echo "App no responde en /public/index (código ${HTTP_CODE})"
             echo "Verifica los logs: sudo journalctl -u minimarket -n 50"
           fi
