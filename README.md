@@ -55,7 +55,7 @@ Los reportes XML se generan en `target/surefire-reports/`.
 
 ## Estructura del proyecto
 
-```
+```text
 src/
 ├── main/java/com/minimarket/
 │   ├── config/          # DataInitializer, OpenApiConfig
@@ -93,6 +93,7 @@ src/
 La API usa tokens JWT. Para autenticarse:
 
 **1. Obtener token:**
+
 ```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
@@ -100,6 +101,7 @@ curl -X POST http://localhost:8080/api/auth/login \
 ```
 
 Respuesta:
+
 ```json
 {
   "token": "<JWT>",
@@ -109,6 +111,7 @@ Respuesta:
 ```
 
 **2. Usar token en peticiones protegidas:**
+
 ```bash
 curl -H "Authorization: Bearer <JWT>" http://localhost:8080/api/productos
 ```
@@ -135,4 +138,4 @@ Hacer clic en "Authorize", ingresar el token JWT en el campo Bearer y explorar l
 
 Rama activa: `feat/microservices-junit-s6`
 
-URL: https://github.com/kbsg01/DB_II-minimarket
+URL: <https://github.com/kbsg01/DB_II-minimarket>
