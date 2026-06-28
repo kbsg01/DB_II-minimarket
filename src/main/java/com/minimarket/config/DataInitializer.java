@@ -16,9 +16,9 @@ import java.util.Set;
  * proceso de registro previo.
  *
  * Usuarios creados:
- *   admin    / admin123    → ROLE_ADMIN
- *   empleado / empleado123 → ROLE_EMPLEADO
- *   cliente  / cliente123  → ROLE_CLIENTE
+ *   admin   / admin123   → ROLE_ADMIN
+ *   cajero  / cajero123  → ROLE_CAJERO
+ *   cliente / cliente123 → ROLE_CLIENTE
  */
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -39,12 +39,12 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
         // Crear roles si no existen
         Rol admin    = getOrCreateRol("ROLE_ADMIN");
-        Rol empleado = getOrCreateRol("ROLE_EMPLEADO");
+        Rol cajero   = getOrCreateRol("ROLE_CAJERO");
         Rol cliente  = getOrCreateRol("ROLE_CLIENTE");
 
         // Crear usuarios de prueba si no existen
         crearUsuario("admin",    "admin123",    Set.of(admin));
-        crearUsuario("empleado", "empleado123", Set.of(empleado));
+        crearUsuario("cajero",   "cajero123",   Set.of(cajero));
         crearUsuario("cliente",  "cliente123",  Set.of(cliente));
     }
 

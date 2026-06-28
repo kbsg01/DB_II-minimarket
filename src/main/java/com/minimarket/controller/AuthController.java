@@ -2,6 +2,10 @@ package com.minimarket.controller;
 
 import com.minimarket.security.model.LoginRequest;
 import com.minimarket.security.util.JwtUtil;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -14,15 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Endpoint de autenticación: recibe credenciales, valida con Spring Security
- * y retorna un JWT firmado listo para usar en peticiones posteriores.
- *
- * POST /api/auth/login
- *   Body: { "username": "...", "password": "..." }
- *   Response 200: { "token": "<JWT>", "username": "...", "roles": [...] }
- *   Response 401: credenciales inválidas
- */
+@Tag(name = "Autenticación", description = "Endpoint público para obtener un token JWT. No requiere autenticación previa.")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -35,6 +31,13 @@ public class AuthController {
         this.jwtUtil = jwtUtil;
     }
 
+    @Operation(summary = "Iniciar sesión",
+               description = "Autentica al usuario y retorna un token JWT. Incluir el token en peticiones posteriores como: Authorization: Bearer <token>",
+               security = {})
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Autenticación exitosa — retorna token JWT, username y roles"),
+        @ApiResponse(responseCode = "401", description = "Credenciales inválidas")
+    })
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {

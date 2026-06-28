@@ -142,7 +142,7 @@ public class UsuarioServiceTest {
     public void puedeRegistrarVenta_rolValido_retornaTrue() {
         // Arrange
         Usuario usuario = usuarioCompleto();
-        usuario.setRoles(Set.of(new Rol("VENDEDOR")));
+        usuario.setRoles(Set.of(new Rol("ROLE_CAJERO")));
 
         // Act
         boolean resultado = usuarioService.puedeRegistrarVenta(usuario);
@@ -155,7 +155,7 @@ public class UsuarioServiceTest {
     public void puedeRegistrarVenta_rolInvalido_retornaFalse() {
         // Arrange
         Usuario usuario = usuarioCompleto();
-        usuario.setRoles(Set.of(new Rol("CLIENTE")));
+        usuario.setRoles(Set.of(new Rol("ROLE_CLIENTE")));
 
         // Act
         boolean resultado = usuarioService.puedeRegistrarVenta(usuario);

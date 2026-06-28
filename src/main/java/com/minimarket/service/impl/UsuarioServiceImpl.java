@@ -70,13 +70,9 @@ public class UsuarioServiceImpl implements UsuarioService {
         if (usuario == null || usuario.getRoles() == null) {
             return false;
         }
-        Set<Rol> roles = usuario.getRoles();
-        return roles.stream()
+        return usuario.getRoles().stream()
                 .filter(rol -> rol != null && rol.getNombre() != null)
-                .anyMatch(rol -> {
-                    String nombre = rol.getNombre().toUpperCase();
-                    return nombre.equals("ADMIN") || nombre.equals("VENDEDOR");
-                });
+                .anyMatch(rol -> "ROLE_CAJERO".equals(rol.getNombre()));
     }
 
     private boolean tieneValor(String valor) {
