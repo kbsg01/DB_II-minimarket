@@ -1,6 +1,7 @@
 package com.minimarket.service.impl;
 
 import com.minimarket.entity.Inventario;
+import com.minimarket.exception.DatosIncompletosException;
 import com.minimarket.repository.InventarioRepository;
 import com.minimarket.service.InventarioService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,5 +38,19 @@ public class InventarioServiceImpl implements InventarioService {
     @Override
     public List<Inventario> findByProductoId(Long productoId) {
         return inventarioRepository.findByProductoId(productoId);
+    }
+
+    @Override
+    public Inventario registrarMovimiento(Inventario inventario) {
+        if (inventario.getTipoMovimiento() == null || inventario.getTipoMovimiento().isBlank()) {
+            throw new DatosIncompletosException("El tipo de movimiento no puede ser nulo o vacío");
+        }
+        if (inventario.getCantidad() == null || inventario.getCantidad() <= 0) {
+            throw new DatosIncompletosException("La cantidad debe ser un valor positivo");
+        }
+        if (inventario.getProducto() == null) {
+            throw new DatosIncompletosException("El producto no puede ser nulo");
+        }
+        return inventarioRepository.save(inventario);
     }
 }

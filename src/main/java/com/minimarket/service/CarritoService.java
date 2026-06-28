@@ -10,4 +10,5 @@ public interface CarritoService {
     Carrito save(Carrito carrito);
     void deleteById(Long id);
     List<Carrito> findByUsuarioId(Long usuarioId);
+    Carrito agregarProducto(Long usuarioId, Long productoId, int cantidad);
 }
