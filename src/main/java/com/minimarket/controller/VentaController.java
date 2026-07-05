@@ -3,55 +3,81 @@ package com.minimarket.controller;
 import com.minimarket.entity.Venta;
 import com.minimarket.service.VentaService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "Ventas", description = "Registro de ventas. La creación de ventas requiere ROLE_CAJERO. Consultas disponibles para ROLE_ADMIN y ROLE_CAJERO.")
+@Tag(name = "Ventas", description = "Registro y consulta de ventas del minimarket. " +
+        "Los detalles de cada venta se gestionan en /api/detalle-ventas.")
 @RestController
 @RequestMapping("/api/ventas")
 public class VentaController {
 
+    private static final String EJEMPLO_VENTA = """
+            {
+              "usuario": { "id": 2 },
+              "fecha": "2026-07-05T14:30:00.000+00:00"
+            }""";
+
     @Autowired
     private VentaService ventaService;
 
-    @Operation(summary = "Listar ventas", description = "Retorna el historial completo de ventas registradas.")
+    @Operation(summary = "Listar todas las ventas",
+            description = "Retorna todas las ventas registradas con su usuario, fecha y detalles.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Lista de ventas"),
-        @ApiResponse(responseCode = "401", description = "No autenticado")
+            @ApiResponse(responseCode = "200", description = "Listado obtenido correctamente",
+                    content = @Content(mediaType = "application/json",
+                            array = @ArraySchema(schema = @Schema(implementation = Venta.class)))),
+            @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content)
     })
     @GetMapping
     public List<Venta> listarVentas() {
         return ventaService.findAll();
     }
 
-    @Operation(summary = "Obtener venta por ID", description = "Retorna una venta específica dado su ID.")
+    @Operation(summary = "Obtener una venta por ID",
+            description = "Busca una venta específica por su identificador único.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Venta encontrada"),
-        @ApiResponse(responseCode = "401", description = "No autenticado"),
-        @ApiResponse(responseCode = "404", description = "Venta no encontrada")
+            @ApiResponse(responseCode = "200", description = "Venta encontrada",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = Venta.class))),
+            @ApiResponse(responseCode = "404", description = "No existe una venta con el ID indicado", content = @Content),
+            @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content)
     })
     @GetMapping("/{id}")
-    public ResponseEntity<Venta> obtenerVentaPorId(@PathVariable Long id) {
+    public ResponseEntity<Venta> obtenerVentaPorId(
+            @Parameter(description = "Identificador único de la venta", example = "1")
+            @PathVariable Long id) {
         Venta venta = ventaService.findById(id);
         return (venta != null) ? ResponseEntity.ok(venta) : ResponseEntity.notFound().build();
     }
 
-    @Operation(summary = "Registrar venta",
-               description = "Registra una nueva venta. Valida que el usuario tenga ROLE_CAJERO mediante puedeRegistrarVenta(). El campo total se calcula internamente.")
+    @Operation(summary = "Registrar una nueva venta",
+            description = "Crea la cabecera de una venta (usuario y fecha). Las líneas se agregan luego en /api/detalle-ventas.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Venta registrada exitosamente"),
-        @ApiResponse(responseCode = "400", description = "Datos incompletos o usuario sin permiso de cajero"),
-        @ApiResponse(responseCode = "401", description = "No autenticado"),
-        @ApiResponse(responseCode = "403", description = "Acceso denegado — se requiere ROLE_CAJERO")
+            @ApiResponse(responseCode = "201", description = "Venta registrada correctamente",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = Venta.class))),
+            @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content)
     })
     @PostMapping
-    public Venta guardarVenta(@RequestBody Venta venta) {
-        return ventaService.save(venta);
+    public ResponseEntity<Venta> guardarVenta(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Datos de la venta a registrar (el usuario debe existir)", required = true,
+                    content = @Content(schema = @Schema(implementation = Venta.class),
+                            examples = @ExampleObject(name = "nuevaVenta", value = EJEMPLO_VENTA)))
+            @RequestBody Venta venta) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ventaService.save(venta));
     }
 }

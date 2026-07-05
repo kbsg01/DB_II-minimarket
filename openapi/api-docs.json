@@ -1,0 +1,1692 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Minimarket Plus API",
+    "description": "API REST del sistema backend Minimarket Plus. Gestiona productos, categorías, carritos, inventario, ventas y usuarios con roles (cliente, cajero, administrador). Todos los endpoints de negocio requieren autenticación HTTP Basic; use el botón Authorize (credenciales de demostración en el README).",
+    "contact": {
+      "name": "Equipo Minimarket Plus - PBY2202",
+      "email": "karla.santigut@gmail.com"
+    },
+    "license": {
+      "name": "Uso académico - Duoc UC"
+    },
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Entorno local de desarrollo"
+    }
+  ],
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Carritos",
+      "description": "Gestión de los ítems del carrito de compras de los usuarios"
+    },
+    {
+      "name": "Público",
+      "description": "Endpoints de acceso público, sin autenticación"
+    },
+    {
+      "name": "Categorías",
+      "description": "Gestión de las categorías de productos del minimarket"
+    },
+    {
+      "name": "Inventario",
+      "description": "Registro de movimientos de inventario (entradas y salidas) por producto"
+    },
+    {
+      "name": "Productos",
+      "description": "Gestión del catálogo de productos del minimarket"
+    },
+    {
+      "name": "Usuarios",
+      "description": "Gestión de usuarios y sus roles (cliente, cajero, administrador). La contraseña nunca se retorna en las respuestas."
+    },
+    {
+      "name": "Detalles de venta",
+      "description": "Gestión de las líneas de detalle de cada venta (producto, cantidad y precio)"
+    },
+    {
+      "name": "Ventas",
+      "description": "Registro y consulta de ventas del minimarket. Los detalles de cada venta se gestionan en /api/detalle-ventas."
+    }
+  ],
+  "paths": {
+    "/api/usuarios/{id}": {
+      "get": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Obtener un usuario por ID",
+        "description": "Busca un usuario específico por su identificador único.",
+        "operationId": "obtenerUsuarioPorId",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único del usuario",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "No existe un usuario con el ID indicado"
+          },
+          "200": {
+            "description": "Usuario encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usuario"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Actualizar un usuario existente",
+        "description": "Reemplaza los datos del usuario identificado por el ID.",
+        "operationId": "actualizarUsuario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único del usuario a actualizar",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "description": "Nuevos datos del usuario",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Usuario"
+              },
+              "examples": {
+                "usuarioActualizado": {
+                  "description": "usuarioActualizado",
+                  "value": {
+                    "username": "cliente2",
+                    "password": "clave-segura-123",
+                    "roles": [
+                      {
+                        "id": 3
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "404": {
+            "description": "No existe un usuario con el ID indicado"
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "200": {
+            "description": "Usuario actualizado correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usuario"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Eliminar un usuario",
+        "description": "Elimina el usuario identificado por el ID.",
+        "operationId": "eliminarUsuario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único del usuario a eliminar",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "No existe un usuario con el ID indicado"
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "204": {
+            "description": "Usuario eliminado correctamente"
+          }
+        }
+      }
+    },
+    "/api/productos/{id}": {
+      "get": {
+        "tags": [
+          "Productos"
+        ],
+        "summary": "Obtener un producto por ID",
+        "description": "Busca un producto específico por su identificador único.",
+        "operationId": "obtenerProductoPorId",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único del producto",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Producto encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Producto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No existe un producto con el ID indicado"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Productos"
+        ],
+        "summary": "Actualizar un producto existente",
+        "description": "Reemplaza los datos del producto identificado por el ID.",
+        "operationId": "actualizarProducto",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único del producto a actualizar",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "description": "Nuevos datos del producto",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Producto"
+              },
+              "examples": {
+                "productoActualizado": {
+                  "description": "productoActualizado",
+                  "value": {
+                    "nombre": "Coca-Cola 1.5L",
+                    "precio": 1890,
+                    "stock": 24,
+                    "categoria": {
+                      "id": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No existe un producto con el ID indicado"
+          },
+          "200": {
+            "description": "Producto actualizado correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Producto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Productos"
+        ],
+        "summary": "Eliminar un producto",
+        "description": "Elimina definitivamente el producto identificado por el ID.",
+        "operationId": "eliminarProducto",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único del producto a eliminar",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Producto eliminado correctamente"
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No existe un producto con el ID indicado"
+          }
+        }
+      }
+    },
+    "/api/inventario/{id}": {
+      "get": {
+        "tags": [
+          "Inventario"
+        ],
+        "summary": "Obtener un movimiento por ID",
+        "description": "Busca un movimiento de inventario específico por su identificador único.",
+        "operationId": "obtenerMovimientoPorId",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único del movimiento",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Movimiento encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Inventario"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No existe un movimiento con el ID indicado"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Inventario"
+        ],
+        "summary": "Actualizar un movimiento de inventario",
+        "description": "Modifica los datos de un movimiento existente.",
+        "operationId": "actualizarMovimiento",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único del movimiento a actualizar",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "description": "Nuevos datos del movimiento",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Inventario"
+              },
+              "examples": {
+                "movimientoActualizado": {
+                  "description": "movimientoActualizado",
+                  "value": {
+                    "producto": {
+                      "id": 1
+                    },
+                    "cantidad": 10,
+                    "tipoMovimiento": "Entrada",
+                    "fechaMovimiento": "2026-07-05T10:00:00.000+00:00"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No existe un movimiento con el ID indicado"
+          },
+          "200": {
+            "description": "Movimiento actualizado correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Inventario"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Inventario"
+        ],
+        "summary": "Eliminar un movimiento de inventario",
+        "description": "Elimina el movimiento identificado por el ID.",
+        "operationId": "eliminarMovimiento",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único del movimiento a eliminar",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No existe un movimiento con el ID indicado"
+          },
+          "204": {
+            "description": "Movimiento eliminado correctamente"
+          }
+        }
+      }
+    },
+    "/api/detalle-ventas/{id}": {
+      "get": {
+        "tags": [
+          "Detalles de venta"
+        ],
+        "summary": "Obtener un detalle de venta por ID",
+        "description": "Busca una línea de detalle específica por su identificador único.",
+        "operationId": "obtenerDetalleVentaPorId",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único del detalle de venta",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "No existe un detalle con el ID indicado"
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "200": {
+            "description": "Detalle encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetalleVenta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Detalles de venta"
+        ],
+        "summary": "Actualizar un detalle de venta",
+        "description": "Modifica producto, cantidad o precio de una línea de detalle existente.",
+        "operationId": "actualizarDetalleVenta",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único del detalle a actualizar",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "description": "Nuevos datos de la línea de detalle",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DetalleVenta"
+              },
+              "examples": {
+                "detalleActualizado": {
+                  "description": "detalleActualizado",
+                  "value": {
+                    "venta": {
+                      "id": 1
+                    },
+                    "producto": {
+                      "id": 1
+                    },
+                    "cantidad": 2,
+                    "precio": 1890
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "404": {
+            "description": "No existe un detalle con el ID indicado"
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "200": {
+            "description": "Detalle actualizado correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetalleVenta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Detalles de venta"
+        ],
+        "summary": "Eliminar un detalle de venta",
+        "description": "Elimina la línea de detalle identificada por el ID.",
+        "operationId": "eliminarDetalleVenta",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único del detalle a eliminar",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "No existe un detalle con el ID indicado"
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "204": {
+            "description": "Detalle eliminado correctamente"
+          }
+        }
+      }
+    },
+    "/api/categorias/{id}": {
+      "get": {
+        "tags": [
+          "Categorías"
+        ],
+        "summary": "Obtener una categoría por ID",
+        "description": "Busca una categoría específica por su identificador único.",
+        "operationId": "obtenerCategoriaPorId",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único de la categoría",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "200": {
+            "description": "Categoría encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Categoria"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe una categoría con el ID indicado"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Categorías"
+        ],
+        "summary": "Actualizar una categoría existente",
+        "description": "Reemplaza los datos de la categoría identificada por el ID.",
+        "operationId": "actualizarCategoria",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único de la categoría a actualizar",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "description": "Nuevos datos de la categoría",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Categoria"
+              },
+              "examples": {
+                "categoriaActualizada": {
+                  "description": "categoriaActualizada",
+                  "value": {
+                    "nombre": "Bebidas"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "200": {
+            "description": "Categoría actualizada correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Categoria"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe una categoría con el ID indicado"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Categorías"
+        ],
+        "summary": "Eliminar una categoría",
+        "description": "Elimina la categoría identificada por el ID. Sus productos asociados también se eliminan (cascade).",
+        "operationId": "eliminarCategoria",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único de la categoría a eliminar",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No existe una categoría con el ID indicado"
+          },
+          "204": {
+            "description": "Categoría eliminada correctamente"
+          }
+        }
+      }
+    },
+    "/api/carritos/{id}": {
+      "get": {
+        "tags": [
+          "Carritos"
+        ],
+        "summary": "Obtener un ítem de carrito por ID",
+        "description": "Busca un ítem de carrito específico por su identificador único.",
+        "operationId": "obtenerCarritoPorId",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único del ítem de carrito",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No existe un ítem con el ID indicado"
+          },
+          "200": {
+            "description": "Ítem encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Carrito"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Carritos"
+        ],
+        "summary": "Actualizar un ítem del carrito",
+        "description": "Modifica el producto o la cantidad de un ítem de carrito existente.",
+        "operationId": "actualizarCarrito",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único del ítem a actualizar",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "description": "Nuevos datos del ítem de carrito",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Carrito"
+              },
+              "examples": {
+                "itemActualizado": {
+                  "description": "itemActualizado",
+                  "value": {
+                    "usuario": {
+                      "id": 3
+                    },
+                    "producto": {
+                      "id": 1
+                    },
+                    "cantidad": 3
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Ítem actualizado correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Carrito"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No existe un ítem con el ID indicado"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Carritos"
+        ],
+        "summary": "Eliminar un producto del carrito",
+        "description": "Elimina el ítem de carrito identificado por el ID.",
+        "operationId": "eliminarProductoDelCarrito",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único del ítem a eliminar",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No existe un ítem con el ID indicado"
+          },
+          "204": {
+            "description": "Ítem eliminado correctamente"
+          }
+        }
+      }
+    },
+    "/api/ventas": {
+      "get": {
+        "tags": [
+          "Ventas"
+        ],
+        "summary": "Listar todas las ventas",
+        "description": "Retorna todas las ventas registradas con su usuario, fecha y detalles.",
+        "operationId": "listarVentas",
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "200": {
+            "description": "Listado obtenido correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Venta"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Ventas"
+        ],
+        "summary": "Registrar una nueva venta",
+        "description": "Crea la cabecera de una venta (usuario y fecha). Las líneas se agregan luego en /api/detalle-ventas.",
+        "operationId": "guardarVenta",
+        "requestBody": {
+          "description": "Datos de la venta a registrar (el usuario debe existir)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Venta"
+              },
+              "examples": {
+                "nuevaVenta": {
+                  "description": "nuevaVenta",
+                  "value": {
+                    "usuario": {
+                      "id": 2
+                    },
+                    "fecha": "2026-07-05T14:30:00.000+00:00"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "201": {
+            "description": "Venta registrada correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Venta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/usuarios": {
+      "get": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Listar todos los usuarios",
+        "description": "Retorna los usuarios registrados con sus roles. El campo password se omite por seguridad.",
+        "operationId": "listarUsuarios",
+        "responses": {
+          "200": {
+            "description": "Listado obtenido correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Usuario"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Crear un nuevo usuario",
+        "description": "Registra un usuario con username único y roles existentes.",
+        "operationId": "guardarUsuario",
+        "requestBody": {
+          "description": "Datos del usuario a crear (los roles referenciados deben existir)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Usuario"
+              },
+              "examples": {
+                "nuevoUsuario": {
+                  "description": "nuevoUsuario",
+                  "value": {
+                    "username": "cliente2",
+                    "password": "clave-segura-123",
+                    "roles": [
+                      {
+                        "id": 3
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "201": {
+            "description": "Usuario creado correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usuario"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/productos": {
+      "get": {
+        "tags": [
+          "Productos"
+        ],
+        "summary": "Listar todos los productos",
+        "description": "Retorna el catálogo completo de productos registrados en el minimarket.",
+        "operationId": "listarProductos",
+        "responses": {
+          "200": {
+            "description": "Listado obtenido correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Producto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Productos"
+        ],
+        "summary": "Crear un nuevo producto",
+        "description": "Registra un producto en el catálogo. La categoría referenciada debe existir previamente.",
+        "operationId": "guardarProducto",
+        "requestBody": {
+          "description": "Datos del producto a crear",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Producto"
+              },
+              "examples": {
+                "nuevoProducto": {
+                  "description": "nuevoProducto",
+                  "value": {
+                    "nombre": "Coca-Cola 1.5L",
+                    "precio": 1890,
+                    "stock": 24,
+                    "categoria": {
+                      "id": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "201": {
+            "description": "Producto creado correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Producto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/inventario": {
+      "get": {
+        "tags": [
+          "Inventario"
+        ],
+        "summary": "Listar todos los movimientos de inventario",
+        "description": "Retorna el historial completo de entradas y salidas de productos.",
+        "operationId": "listarMovimientosDeInventario",
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "200": {
+            "description": "Listado obtenido correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Inventario"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Inventario"
+        ],
+        "summary": "Registrar un movimiento de inventario",
+        "description": "Registra una entrada o salida de unidades para un producto existente.",
+        "operationId": "registrarMovimiento",
+        "requestBody": {
+          "description": "Movimiento a registrar (el producto debe existir)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Inventario"
+              },
+              "examples": {
+                "nuevoMovimiento": {
+                  "description": "nuevoMovimiento",
+                  "value": {
+                    "producto": {
+                      "id": 1
+                    },
+                    "cantidad": 10,
+                    "tipoMovimiento": "Entrada",
+                    "fechaMovimiento": "2026-07-05T10:00:00.000+00:00"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "201": {
+            "description": "Movimiento registrado correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Inventario"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/detalle-ventas": {
+      "get": {
+        "tags": [
+          "Detalles de venta"
+        ],
+        "summary": "Listar todos los detalles de venta",
+        "description": "Retorna todas las líneas de detalle registradas con su venta, producto, cantidad y precio.",
+        "operationId": "listarDetalleVentas",
+        "responses": {
+          "200": {
+            "description": "Listado obtenido correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DetalleVenta"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Detalles de venta"
+        ],
+        "summary": "Crear un detalle de venta",
+        "description": "Agrega una línea de detalle a una venta existente, indicando producto, cantidad y precio aplicado.",
+        "operationId": "guardarDetalleVenta",
+        "requestBody": {
+          "description": "Línea de detalle a crear (venta y producto deben existir)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DetalleVenta"
+              },
+              "examples": {
+                "nuevoDetalle": {
+                  "description": "nuevoDetalle",
+                  "value": {
+                    "venta": {
+                      "id": 1
+                    },
+                    "producto": {
+                      "id": 1
+                    },
+                    "cantidad": 2,
+                    "precio": 1890
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "201": {
+            "description": "Detalle creado correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetalleVenta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/categorias": {
+      "get": {
+        "tags": [
+          "Categorías"
+        ],
+        "summary": "Listar todas las categorías",
+        "description": "Retorna todas las categorías registradas para clasificar productos.",
+        "operationId": "listarCategorias",
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "200": {
+            "description": "Listado obtenido correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Categoria"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Categorías"
+        ],
+        "summary": "Crear una nueva categoría",
+        "description": "Registra una categoría con nombre único.",
+        "operationId": "guardarCategoria",
+        "requestBody": {
+          "description": "Datos de la categoría a crear",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Categoria"
+              },
+              "examples": {
+                "nuevaCategoria": {
+                  "description": "nuevaCategoria",
+                  "value": {
+                    "nombre": "Bebidas"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "201": {
+            "description": "Categoría creada correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Categoria"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/carritos": {
+      "get": {
+        "tags": [
+          "Carritos"
+        ],
+        "summary": "Listar todos los ítems de carrito",
+        "description": "Retorna todos los ítems de carrito registrados, con su usuario, producto y cantidad.",
+        "operationId": "listarCarrito",
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "200": {
+            "description": "Listado obtenido correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Carrito"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Carritos"
+        ],
+        "summary": "Agregar un producto al carrito",
+        "description": "Crea un ítem de carrito asociando un usuario, un producto existente y la cantidad deseada.",
+        "operationId": "agregarProductoAlCarrito",
+        "requestBody": {
+          "description": "Ítem de carrito a crear (usuario y producto deben existir)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Carrito"
+              },
+              "examples": {
+                "nuevoItemCarrito": {
+                  "description": "nuevoItemCarrito",
+                  "value": {
+                    "usuario": {
+                      "id": 3
+                    },
+                    "producto": {
+                      "id": 1
+                    },
+                    "cantidad": 3
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Producto agregado al carrito correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Carrito"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado"
+          }
+        }
+      }
+    },
+    "/public/hola": {
+      "get": {
+        "tags": [
+          "Público"
+        ],
+        "summary": "Saludo de verificación",
+        "description": "Endpoint público para comprobar que la API está en línea. No requiere autenticación.",
+        "operationId": "holaMundo",
+        "responses": {
+          "200": {
+            "description": "La API responde correctamente",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "¡Hola Mundo!"
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/ventas/{id}": {
+      "get": {
+        "tags": [
+          "Ventas"
+        ],
+        "summary": "Obtener una venta por ID",
+        "description": "Busca una venta específica por su identificador único.",
+        "operationId": "obtenerVentaPorId",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único de la venta",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "404": {
+            "description": "No existe una venta con el ID indicado"
+          },
+          "200": {
+            "description": "Venta encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Venta"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Rol": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Identificador único del rol",
+            "format": "int64",
+            "readOnly": true,
+            "example": 1
+          },
+          "nombre": {
+            "type": "string",
+            "description": "Nombre del rol",
+            "example": "ROLE_ADMIN"
+          }
+        },
+        "description": "Rol de autorización dentro del sistema"
+      },
+      "Usuario": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Identificador único del usuario",
+            "format": "int64",
+            "readOnly": true,
+            "example": 1
+          },
+          "username": {
+            "type": "string",
+            "description": "Nombre de usuario único para autenticación",
+            "example": "admin"
+          },
+          "password": {
+            "type": "string",
+            "description": "Contraseña del usuario (solo escritura, no se retorna en respuestas)",
+            "writeOnly": true,
+            "example": "admin123"
+          },
+          "roles": {
+            "uniqueItems": true,
+            "type": "array",
+            "description": "Roles asignados al usuario",
+            "items": {
+              "$ref": "#/components/schemas/Rol"
+            }
+          }
+        },
+        "description": "Usuario del sistema con sus roles asociados (cliente, cajero, administrador)"
+      },
+      "Categoria": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Identificador único de la categoría",
+            "format": "int64",
+            "readOnly": true,
+            "example": 1
+          },
+          "nombre": {
+            "type": "string",
+            "description": "Nombre único de la categoría",
+            "example": "Bebidas"
+          }
+        },
+        "description": "Categoría para clasificar los productos del minimarket"
+      },
+      "Producto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Identificador único del producto",
+            "format": "int64",
+            "readOnly": true,
+            "example": 1
+          },
+          "nombre": {
+            "type": "string",
+            "description": "Nombre comercial del producto",
+            "example": "Coca-Cola 1.5L"
+          },
+          "precio": {
+            "type": "number",
+            "description": "Precio unitario en pesos chilenos",
+            "format": "double",
+            "example": 1890
+          },
+          "stock": {
+            "type": "integer",
+            "description": "Unidades disponibles en bodega",
+            "format": "int32",
+            "example": 24
+          },
+          "categoria": {
+            "$ref": "#/components/schemas/Categoria"
+          }
+        },
+        "description": "Producto del catálogo del minimarket"
+      },
+      "Inventario": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Identificador único del movimiento",
+            "format": "int64",
+            "readOnly": true,
+            "example": 1
+          },
+          "producto": {
+            "$ref": "#/components/schemas/Producto"
+          },
+          "cantidad": {
+            "type": "integer",
+            "description": "Cantidad de unidades del movimiento",
+            "format": "int32",
+            "example": 10
+          },
+          "tipoMovimiento": {
+            "type": "string",
+            "description": "Tipo de movimiento de inventario",
+            "example": "Entrada",
+            "enum": [
+              "Entrada",
+              "Salida"
+            ]
+          },
+          "fechaMovimiento": {
+            "type": "string",
+            "description": "Fecha y hora del movimiento",
+            "format": "date-time",
+            "example": "2026-07-05T10:00:00Z"
+          }
+        },
+        "description": "Movimiento de inventario (entrada o salida) de un producto"
+      },
+      "DetalleVenta": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Identificador único del detalle",
+            "format": "int64",
+            "readOnly": true,
+            "example": 1
+          },
+          "venta": {
+            "$ref": "#/components/schemas/Venta"
+          },
+          "producto": {
+            "$ref": "#/components/schemas/Producto"
+          },
+          "cantidad": {
+            "type": "integer",
+            "description": "Cantidad de unidades vendidas",
+            "format": "int32",
+            "example": 2
+          },
+          "precio": {
+            "type": "number",
+            "description": "Precio unitario aplicado en la venta",
+            "format": "double",
+            "example": 1890
+          }
+        },
+        "description": "Línea de detalle de una venta: producto, cantidad y precio al momento de la venta"
+      },
+      "Venta": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Identificador único de la venta",
+            "format": "int64",
+            "readOnly": true,
+            "example": 1
+          },
+          "usuario": {
+            "$ref": "#/components/schemas/Usuario"
+          },
+          "fecha": {
+            "type": "string",
+            "description": "Fecha y hora de la venta",
+            "format": "date-time",
+            "example": "2026-07-05T14:30:00Z"
+          }
+        },
+        "description": "Venta realizada en el minimarket, con su usuario, fecha y detalles"
+      },
+      "Carrito": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Identificador único del ítem del carrito",
+            "format": "int64",
+            "readOnly": true,
+            "example": 1
+          },
+          "usuario": {
+            "$ref": "#/components/schemas/Usuario"
+          },
+          "producto": {
+            "$ref": "#/components/schemas/Producto"
+          },
+          "cantidad": {
+            "type": "integer",
+            "description": "Cantidad de unidades del producto",
+            "format": "int32",
+            "example": 3
+          }
+        },
+        "description": "Ítem del carrito de compras: asocia un producto y su cantidad a un usuario"
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "type": "http",
+        "description": "Autenticación HTTP Basic contra los usuarios registrados en H2",
+        "name": "basicAuth",
+        "scheme": "basic"
+      }
+    }
+  }
+}

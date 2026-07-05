@@ -10,5 +10,4 @@ public interface InventarioService {
     Inventario save(Inventario inventario);
     void deleteById(Long id);
     List<Inventario> findByProductoId(Long productoId);
-    Inventario registrarMovimiento(Inventario inventario);
 }

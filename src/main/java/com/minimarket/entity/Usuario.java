@@ -1,24 +1,29 @@
 package com.minimarket.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import java.util.Set;
 
 @Entity
+@Schema(description = "Usuario del sistema con sus roles asociados (cliente, cajero, administrador)")
 public class Usuario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(description = "Identificador único del usuario", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
     private Long id;
 
     @Column(nullable = false, unique = true)
+    @Schema(description = "Nombre de usuario único para autenticación", example = "admin")
     private String username;
 
+    // WRITE_ONLY: se acepta en peticiones (crear/actualizar) pero nunca se
+    // expone en las respuestas JSON, evitando filtrar el hash BCrypt (OWASP).
     @Column(nullable = false)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @Schema(description = "Contraseña del usuario (solo escritura, no se retorna en respuestas)",
+            example = "admin123", accessMode = Schema.AccessMode.WRITE_ONLY)
     private String password;
-
-    private String nombre;
-    private String apellido;
-    private String email;
-    private String direccion;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -26,6 +31,7 @@ public class Usuario {
             joinColumns = @JoinColumn(name = "usuario_id"),
             inverseJoinColumns = @JoinColumn(name = "rol_id")
     )
+    @Schema(description = "Roles asignados al usuario")
     private Set<Rol> roles;
 
     // Getters y Setters
@@ -59,37 +65,5 @@ public class Usuario {
 
     public void setRoles(Set<Rol> roles) {
         this.roles = roles;
-    }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
-    public String getApellido() {
-        return apellido;
-    }
-
-    public void setApellido(String apellido) {
-        this.apellido = apellido;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getDireccion() {
-        return direccion;
-    }
-
-    public void setDireccion(String direccion) {
-        this.direccion = direccion;
     }
 }

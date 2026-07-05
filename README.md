@@ -1,141 +1,65 @@
-# Minimarket Plus — API REST
+# Minimarket Plus — Backend con documentación OpenAPI
 
-Sistema de gestión backend para un minimarket. Desarrollado con Spring Boot 3.4.1 como entregable académico de la asignatura Desarrollo Backend II (PBY2202), Semana 6.
+Sistema backend para la gestión de un minimarket (productos, categorías, carritos, inventario, ventas y usuarios con roles), desarrollado en Spring Boot 3.4.1 y documentado con **OpenAPI 3 (springdoc-openapi) + Swagger UI**.
 
-## Tecnologías
+Actividad Semana 7 — Desarrollo Backend II (PBY2202), Duoc UC.
 
-- Java 17 (target) / Java 25 compatible en runtime
-- Spring Boot 3.4.1 (Web, Security, Data JPA)
-- JWT con JJWT 0.11.5 (HS256, 24 horas de vigencia)
-- H2 in-memory (`jdbc:h2:mem:testdb`)
-- JUnit 5 + Mockito para pruebas unitarias
-- SpringDoc OpenAPI 2.7.0 (Swagger UI)
+## Requisitos
 
-## Prerrequisitos
+- Java 17 o superior (JDK)
+- No requiere base de datos externa: usa H2 en memoria
 
-- Java 17 o superior
-- Maven 3.8 o superior (el proyecto incluye `./mvnw`)
-
-## Instalación y ejecución
+## Ejecución
 
 ```bash
-# Clonar el repositorio
-git clone https://github.com/kbsg01/DB_II-minimarket.git
-cd DB_II-minimarket
-git checkout feat/microservices-junit-s6
-
-# Compilar
-./mvnw clean package -DskipTests
-
-# Ejecutar la aplicación (puerto 8080)
-./mvnw spring-boot:run
+./mvnw spring-boot:run        # Linux / macOS
+mvnw.cmd spring-boot:run      # Windows
 ```
 
-> **Nota para Java 25**: Si el entorno tiene Java 25 instalado, agregar `-Djacoco.skip=true` al comando de pruebas (JaCoCo 0.8.14 no soporta bytecode Java 25).
+La aplicación queda disponible en `http://localhost:8080`.
 
-## Ejecución de pruebas
+## Documentación de la API
 
-```bash
-# Ejecutar todas las pruebas unitarias
-./mvnw test
+| Recurso | URL |
+|---|---|
+| Swagger UI (interfaz interactiva) | http://localhost:8080/swagger-ui.html |
+| Contrato OpenAPI (JSON) | http://localhost:8080/v3/api-docs |
+| JSON exportado (para Postman) | [`openapi/api-docs.json`](openapi/api-docs.json) |
+| Consola H2 (desarrollo) | http://localhost:8080/h2-console (JDBC: `jdbc:h2:mem:testdb`, usuario `sa`, sin contraseña) |
 
-# Con Java 25 (evita error de JaCoCo)
-./mvnw test -Djacoco.skip=true
+## Autenticación
 
-# Ejecutar una clase específica
-./mvnw test -Dtest=ProductoServiceTest
+Todos los endpoints `/api/**` requieren **HTTP Basic**. En Swagger UI, presiona **Authorize** e ingresa una de las credenciales de demostración (creadas automáticamente al iniciar):
 
-# Ejecutar un método específico
-./mvnw test -Dtest=UsuarioServiceTest#puedeRegistrarVenta_rolValido_retornaTrue
-```
+| Usuario | Contraseña | Rol |
+|---|---|---|
+| `admin` | `admin123` | ROLE_ADMIN |
+| `cajero1` | `cajero123` | ROLE_CAJERO |
+| `cliente1` | `cliente123` | ROLE_CLIENTE |
 
-Resultado esperado: `Tests run: 66, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS`
+Los endpoints `/public/**`, Swagger UI y `/v3/api-docs` son de acceso público.
 
-Los reportes XML se generan en `target/surefire-reports/`.
+## Endpoints documentados
 
-## Estructura del proyecto
+| Recurso | Ruta base | Operaciones |
+|---|---|---|
+| Productos | `/api/productos` | GET, GET/{id}, POST, PUT/{id}, DELETE/{id} |
+| Carritos | `/api/carritos` | GET, GET/{id}, POST, PUT/{id}, DELETE/{id} |
+| Categorías | `/api/categorias` | GET, GET/{id}, POST, PUT/{id}, DELETE/{id} |
+| Usuarios | `/api/usuarios` | GET, GET/{id}, POST, PUT/{id}, DELETE/{id} |
+| Ventas | `/api/ventas` | GET, GET/{id}, POST |
+| Detalles de venta | `/api/detalle-ventas` | GET, GET/{id}, POST, PUT/{id}, DELETE/{id} |
+| Inventario | `/api/inventario` | GET, GET/{id}, POST, PUT/{id}, DELETE/{id} |
+| Público | `/public/hola` | GET (sin autenticación) |
 
-```text
-src/
-├── main/java/com/minimarket/
-│   ├── config/          # DataInitializer, OpenApiConfig
-│   ├── controller/      # 9 RestControllers con anotaciones Swagger
-│   ├── entity/          # Entidades JPA
-│   ├── exception/       # DatosIncompletosException, StockInsuficienteException
-│   ├── repository/      # Interfaces Spring Data JPA
-│   ├── security/        # JWT filter, SecurityConfig, CustomUserDetails
-│   └── service/         # Interfaces e implementaciones de servicio
-└── test/java/com/minimarket/service/
-    ├── CarritoServiceTest.java   (14 pruebas)
-    ├── InventarioServiceTest.java (13 pruebas)
-    ├── ProductoServiceTest.java   (12 pruebas)
-    ├── UsuarioServiceTest.java    (13 pruebas)
-    ├── UsuarioTest.java           (3 pruebas)
-    └── VentaServiceTest.java      (11 pruebas)
-```
+## Probar el contrato en Postman
 
-## Endpoints disponibles
+1. Abrir Postman → **Import** → seleccionar `openapi/api-docs.json` (o la URL `http://localhost:8080/v3/api-docs`).
+2. En la colección generada: pestaña **Authorization** → tipo **Basic Auth** → credenciales de demostración.
+3. Ejecutar los requests y contrastar códigos de estado y cuerpos con lo documentado en Swagger UI.
 
-| Recurso | Ruta base | Roles requeridos |
-|---------|-----------|-----------------|
-| Autenticacion | `POST /api/auth/login` | Publico |
-| Categorias | `/api/categorias` | Autenticado / ADMIN para escritura |
-| Productos | `/api/productos` | Autenticado / ADMIN para escritura |
-| Inventario | `/api/inventario` | CAJERO, ADMIN |
-| Carrito | `/api/carrito` | Autenticado |
-| Ventas | `/api/ventas` | CAJERO (crear), Autenticado (leer) |
-| Detalle Venta | `/api/detalle-ventas` | Autenticado |
-| Usuarios | `/api/usuarios` | ADMIN |
-| Public | `GET /public/hola` | Sin autenticacion |
+## Notas técnicas
 
-## Autenticacion con JWT
-
-La API usa tokens JWT. Para autenticarse:
-
-**1. Obtener token:**
-
-```bash
-curl -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
-```
-
-Respuesta:
-
-```json
-{
-  "token": "<JWT>",
-  "username": "admin",
-  "roles": ["ROLE_ADMIN"]
-}
-```
-
-**2. Usar token en peticiones protegidas:**
-
-```bash
-curl -H "Authorization: Bearer <JWT>" http://localhost:8080/api/productos
-```
-
-**Usuarios pre-cargados:**
-
-| Usuario | Contrasena | Rol |
-|---------|-----------|-----|
-| admin | admin123 | ROLE_ADMIN |
-| cajero | cajero123 | ROLE_CAJERO |
-| cliente | cliente123 | ROLE_CLIENTE |
-
-## Documentacion Swagger UI
-
-Con la aplicacion en ejecucion, acceder a:
-
-```
-http://localhost:8080/swagger-ui/index.html
-```
-
-Hacer clic en "Authorize", ingresar el token JWT en el campo Bearer y explorar los 9 grupos de endpoints documentados.
-
-## Repositorio GitHub
-
-Rama activa: `feat/microservices-junit-s6`
-
-URL: <https://github.com/kbsg01/DB_II-minimarket>
+- El puerto puede cambiarse con la variable `SERVER_PORT` (ej. `SERVER_PORT=8081 ./mvnw spring-boot:run`) si el 8080 está ocupado.
+- La contraseña de los usuarios nunca se retorna en las respuestas (`WRITE_ONLY`).
+- Datos de demostración cargados por `com.minimarket.config.DataLoader`.

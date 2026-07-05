@@ -3,67 +3,104 @@ package com.minimarket.controller;
 import com.minimarket.entity.Producto;
 import com.minimarket.service.ProductoService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "Productos", description = "Gestión del catálogo de productos. Lectura disponible para todos los usuarios autenticados. Creación, edición y eliminación requieren ROLE_ADMIN.")
+@Tag(name = "Productos", description = "Gestión del catálogo de productos del minimarket")
 @RestController
 @RequestMapping("/api/productos")
 public class ProductoController {
 
+    private static final String EJEMPLO_PRODUCTO = """
+            {
+              "nombre": "Coca-Cola 1.5L",
+              "precio": 1890,
+              "stock": 24,
+              "categoria": { "id": 1 }
+            }""";
+
     @Autowired
     private ProductoService productoService;
 
-    @Operation(summary = "Listar productos", description = "Retorna el catálogo completo de productos.")
+    @Operation(summary = "Listar todos los productos",
+            description = "Retorna el catálogo completo de productos registrados en el minimarket.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Lista de productos"),
-        @ApiResponse(responseCode = "401", description = "No autenticado")
+            @ApiResponse(responseCode = "200", description = "Listado obtenido correctamente",
+                    content = @Content(mediaType = "application/json",
+                            array = @ArraySchema(schema = @Schema(implementation = Producto.class)))),
+            @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content)
     })
     @GetMapping
     public List<Producto> listarProductos() {
         return productoService.findAll();
     }
 
-    @Operation(summary = "Obtener producto por ID", description = "Retorna un producto específico dado su ID.")
+    @Operation(summary = "Obtener un producto por ID",
+            description = "Busca un producto específico por su identificador único.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Producto encontrado"),
-        @ApiResponse(responseCode = "401", description = "No autenticado"),
-        @ApiResponse(responseCode = "404", description = "Producto no encontrado")
+            @ApiResponse(responseCode = "200", description = "Producto encontrado",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = Producto.class))),
+            @ApiResponse(responseCode = "404", description = "No existe un producto con el ID indicado", content = @Content),
+            @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content)
     })
     @GetMapping("/{id}")
-    public ResponseEntity<Producto> obtenerProductoPorId(@PathVariable Long id) {
+    public ResponseEntity<Producto> obtenerProductoPorId(
+            @Parameter(description = "Identificador único del producto", example = "1")
+            @PathVariable Long id) {
         Producto producto = productoService.findById(id);
         return (producto != null) ? ResponseEntity.ok(producto) : ResponseEntity.notFound().build();
     }
 
-    @Operation(summary = "Crear producto",
-               description = "Crea un nuevo producto en el catálogo. Requiere ROLE_ADMIN. Valida que nombre, precio y stock sean datos completos.")
+    @Operation(summary = "Crear un nuevo producto",
+            description = "Registra un producto en el catálogo. La categoría referenciada debe existir previamente.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Producto creado"),
-        @ApiResponse(responseCode = "400", description = "Datos incompletos (DatosIncompletosException)"),
-        @ApiResponse(responseCode = "401", description = "No autenticado"),
-        @ApiResponse(responseCode = "403", description = "Acceso denegado — se requiere ROLE_ADMIN")
+            @ApiResponse(responseCode = "201", description = "Producto creado correctamente",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = Producto.class))),
+            @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content)
     })
     @PostMapping
-    public Producto guardarProducto(@RequestBody Producto producto) {
-        return productoService.save(producto);
+    public ResponseEntity<Producto> guardarProducto(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Datos del producto a crear", required = true,
+                    content = @Content(schema = @Schema(implementation = Producto.class),
+                            examples = @ExampleObject(name = "nuevoProducto", value = EJEMPLO_PRODUCTO)))
+            @RequestBody Producto producto) {
+        // 201 Created: código correcto para creación de recursos REST
+        return ResponseEntity.status(HttpStatus.CREATED).body(productoService.save(producto));
     }
 
-    @Operation(summary = "Actualizar producto", description = "Actualiza los datos de un producto existente. Requiere ROLE_ADMIN.")
+    @Operation(summary = "Actualizar un producto existente",
+            description = "Reemplaza los datos del producto identificado por el ID.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Producto actualizado"),
-        @ApiResponse(responseCode = "401", description = "No autenticado"),
-        @ApiResponse(responseCode = "403", description = "Acceso denegado — se requiere ROLE_ADMIN"),
-        @ApiResponse(responseCode = "404", description = "Producto no encontrado")
+            @ApiResponse(responseCode = "200", description = "Producto actualizado correctamente",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = Producto.class))),
+            @ApiResponse(responseCode = "404", description = "No existe un producto con el ID indicado", content = @Content),
+            @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content)
     })
     @PutMapping("/{id}")
-    public ResponseEntity<Producto> actualizarProducto(@PathVariable Long id, @RequestBody Producto producto) {
+    public ResponseEntity<Producto> actualizarProducto(
+            @Parameter(description = "Identificador único del producto a actualizar", example = "1")
+            @PathVariable Long id,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Nuevos datos del producto", required = true,
+                    content = @Content(schema = @Schema(implementation = Producto.class),
+                            examples = @ExampleObject(name = "productoActualizado", value = EJEMPLO_PRODUCTO)))
+            @RequestBody Producto producto) {
         Producto productoExistente = productoService.findById(id);
         if (productoExistente != null) {
             producto.setId(id);
@@ -72,15 +109,17 @@ public class ProductoController {
         return ResponseEntity.notFound().build();
     }
 
-    @Operation(summary = "Eliminar producto", description = "Elimina un producto del catálogo dado su ID. Requiere ROLE_ADMIN.")
+    @Operation(summary = "Eliminar un producto",
+            description = "Elimina definitivamente el producto identificado por el ID.")
     @ApiResponses({
-        @ApiResponse(responseCode = "204", description = "Producto eliminado"),
-        @ApiResponse(responseCode = "401", description = "No autenticado"),
-        @ApiResponse(responseCode = "403", description = "Acceso denegado — se requiere ROLE_ADMIN"),
-        @ApiResponse(responseCode = "404", description = "Producto no encontrado")
+            @ApiResponse(responseCode = "204", description = "Producto eliminado correctamente", content = @Content),
+            @ApiResponse(responseCode = "404", description = "No existe un producto con el ID indicado", content = @Content),
+            @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content)
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarProducto(@PathVariable Long id) {
+    public ResponseEntity<Void> eliminarProducto(
+            @Parameter(description = "Identificador único del producto a eliminar", example = "1")
+            @PathVariable Long id) {
         Producto producto = productoService.findById(id);
         if (producto != null) {
             productoService.deleteById(id);
