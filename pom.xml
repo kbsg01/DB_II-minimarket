@@ -42,6 +42,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
+		<!-- Enlaces dinámicos HATEOAS (EntityModel/CollectionModel) - Criterio 3 de la pauta S8 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-hateoas</artifactId>
+		</dependency>
 		<!-- Documentación OpenAPI 3 + Swagger UI (Criterio 1 de la pauta S7) -->
 		<dependency>
 			<groupId>org.springdoc</groupId>

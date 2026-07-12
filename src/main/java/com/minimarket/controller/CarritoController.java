@@ -1,10 +1,10 @@
 package com.minimarket.controller;
 
+import com.minimarket.assembler.CarritoModelAssembler;
 import com.minimarket.entity.Carrito;
 import com.minimarket.service.CarritoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,17 +12,24 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.Link;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
 /**
  * Ruta estandarizada a plural (/api/carritos) para mantener consistencia
  * con el resto de los recursos, según las buenas prácticas de la guía S7.
  */
-@Tag(name = "Carritos", description = "Gestión de los ítems del carrito de compras de los usuarios")
+@Tag(name = "Carritos", description = "Gestión de los ítems del carrito de compras de los usuarios. " +
+        "Las respuestas incluyen enlaces HATEOAS hacia el producto y el usuario relacionados.")
 @RestController
 @RequestMapping("/api/carritos")
 public class CarritoController {
@@ -37,65 +44,74 @@ public class CarritoController {
     @Autowired
     private CarritoService carritoService;
 
-    @Operation(summary = "Listar todos los ítems de carrito",
-            description = "Retorna todos los ítems de carrito registrados, con su usuario, producto y cantidad.")
+    @Autowired
+    private CarritoModelAssembler carritoModelAssembler;
+
+    @Operation(summary = "Listar ítems de carrito",
+            description = "Retorna los ítems de carrito registrados. Si se indica `usuarioId`, filtra solo los ítems de ese usuario.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Listado obtenido correctamente",
-                    content = @Content(mediaType = "application/json",
-                            array = @ArraySchema(schema = @Schema(implementation = Carrito.class)))),
+            @ApiResponse(responseCode = "200", description = "Listado obtenido correctamente", content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content)
     })
     @GetMapping
-    public List<Carrito> listarCarrito() {
-        return carritoService.findAll();
+    public CollectionModel<EntityModel<Carrito>> listarCarrito(
+            @Parameter(description = "Filtra los ítems de carrito de un usuario específico", example = "3")
+            @RequestParam(required = false) Long usuarioId) {
+        List<Carrito> items = (usuarioId != null)
+                ? carritoService.findByUsuarioId(usuarioId)
+                : carritoService.findAll();
+        List<EntityModel<Carrito>> modelos = items.stream()
+                .map(carritoModelAssembler::toModel)
+                .toList();
+        Link self = linkTo(methodOn(CarritoController.class).listarCarrito(usuarioId)).withSelfRel();
+        return CollectionModel.of(modelos, self);
     }
 
     @Operation(summary = "Obtener un ítem de carrito por ID",
             description = "Busca un ítem de carrito específico por su identificador único.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Ítem encontrado",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = Carrito.class))),
+            @ApiResponse(responseCode = "200", description = "Ítem encontrado", content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "No existe un ítem con el ID indicado", content = @Content),
             @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content)
     })
     @GetMapping("/{id}")
-    public ResponseEntity<Carrito> obtenerCarritoPorId(
+    public ResponseEntity<EntityModel<Carrito>> obtenerCarritoPorId(
             @Parameter(description = "Identificador único del ítem de carrito", example = "1")
             @PathVariable Long id) {
         Carrito carrito = carritoService.findById(id);
-        return (carrito != null) ? ResponseEntity.ok(carrito) : ResponseEntity.notFound().build();
+        return (carrito != null)
+                ? ResponseEntity.ok(carritoModelAssembler.toModel(carrito))
+                : ResponseEntity.notFound().build();
     }
 
     @Operation(summary = "Agregar un producto al carrito",
             description = "Crea un ítem de carrito asociando un usuario, un producto existente y la cantidad deseada.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Producto agregado al carrito correctamente",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = Carrito.class))),
+            @ApiResponse(responseCode = "201", description = "Producto agregado al carrito correctamente", content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos: usuario, producto o cantidad faltantes o mal formados", content = @Content),
             @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content)
     })
     @PostMapping
-    public ResponseEntity<Carrito> agregarProductoAlCarrito(
+    public ResponseEntity<EntityModel<Carrito>> agregarProductoAlCarrito(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Ítem de carrito a crear (usuario y producto deben existir)", required = true,
                     content = @Content(schema = @Schema(implementation = Carrito.class),
                             examples = @ExampleObject(name = "nuevoItemCarrito", value = EJEMPLO_CARRITO)))
             @RequestBody Carrito carrito) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(carritoService.save(carrito));
+        Carrito guardado = carritoService.save(carrito);
+        return ResponseEntity.status(HttpStatus.CREATED).body(carritoModelAssembler.toModel(guardado));
     }
 
     @Operation(summary = "Actualizar un ítem del carrito",
             description = "Modifica el producto o la cantidad de un ítem de carrito existente.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Ítem actualizado correctamente",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = Carrito.class))),
+            @ApiResponse(responseCode = "200", description = "Ítem actualizado correctamente", content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos: usuario, producto o cantidad faltantes o mal formados", content = @Content),
             @ApiResponse(responseCode = "404", description = "No existe un ítem con el ID indicado", content = @Content),
             @ApiResponse(responseCode = "401", description = "No autenticado", content = @Content)
     })
     @PutMapping("/{id}")
-    public ResponseEntity<Carrito> actualizarCarrito(
+    public ResponseEntity<EntityModel<Carrito>> actualizarCarrito(
             @Parameter(description = "Identificador único del ítem a actualizar", example = "1")
             @PathVariable Long id,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -106,7 +122,7 @@ public class CarritoController {
         Carrito existente = carritoService.findById(id);
         if (existente != null) {
             carrito.setId(id);
-            return ResponseEntity.ok(carritoService.save(carrito));
+            return ResponseEntity.ok(carritoModelAssembler.toModel(carritoService.save(carrito)));
         }
         return ResponseEntity.notFound().build();
     }

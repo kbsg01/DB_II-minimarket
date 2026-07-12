@@ -1,8 +1,8 @@
-# Minimarket Plus — Backend con documentación OpenAPI
+# Minimarket Plus — Backend con documentación OpenAPI + HATEOAS
 
-Sistema backend para la gestión de un minimarket (productos, categorías, carritos, inventario, ventas y usuarios con roles), desarrollado en Spring Boot 3.4.1 y documentado con **OpenAPI 3 (springdoc-openapi) + Swagger UI**.
+Sistema backend para la gestión de un minimarket (productos, categorías, carritos, inventario, ventas y usuarios con roles), desarrollado en Spring Boot 3.4.1 y documentado con **OpenAPI 3 (springdoc-openapi) + Swagger UI**, con navegación entre recursos mediante **HATEOAS (Spring HATEOAS)**.
 
-Actividad Semana 7 — Desarrollo Backend II (PBY2202), Duoc UC.
+Actividad Semana 8 — Desarrollo Backend II (PBY2202), Duoc UC. (Basado en la Semana 7: documentación OpenAPI).
 
 ## Requisitos
 
@@ -38,6 +38,20 @@ Todos los endpoints `/api/**` requieren **HTTP Basic**. En Swagger UI, presiona 
 | `cliente1` | `cliente123` | ROLE_CLIENTE |
 
 Los endpoints `/public/**`, Swagger UI y `/v3/api-docs` son de acceso público.
+
+## Enlaces HATEOAS y filtros de navegación
+
+Las respuestas de recurso individual y de colección de los 7 recursos de negocio incluyen un bloque `_links` (Spring HATEOAS) con enlaces `self`, colección y relaciones entre recursos (p. ej. producto → categoría, venta → detalles). Ver el detalle completo por recurso en [`specs/001-hateoas-openapi-avanzado/contracts/hateoas-links.md`](specs/001-hateoas-openapi-avanzado/contracts/hateoas-links.md).
+
+Los enlaces relacionados 1:N se apoyan en parámetros de consulta opcionales agregados a endpoints de colección ya existentes:
+
+| Endpoint | Parámetro | Ejemplo |
+|---|---|---|
+| `GET /api/productos` | `categoriaId` | `/api/productos?categoriaId=1` |
+| `GET /api/inventario` | `productoId` | `/api/inventario?productoId=1` |
+| `GET /api/carritos` | `usuarioId` | `/api/carritos?usuarioId=3` |
+| `GET /api/ventas` | `usuarioId` | `/api/ventas?usuarioId=3` |
+| `GET /api/detalle-ventas` | `ventaId` | `/api/detalle-ventas?ventaId=1` |
 
 ## Endpoints documentados
 

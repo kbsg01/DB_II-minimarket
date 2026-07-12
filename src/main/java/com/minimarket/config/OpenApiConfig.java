@@ -32,7 +32,11 @@ public class OpenApiConfig {
                                 Gestiona productos, categorías, carritos, inventario, \
                                 ventas y usuarios con roles (cliente, cajero, administrador). \
                                 Todos los endpoints de negocio requieren autenticación HTTP Basic; \
-                                use el botón Authorize (credenciales de demostración en el README).""")
+                                use el botón Authorize (credenciales de demostración en el README). \
+                                Las respuestas de recurso individual y colección incluyen enlaces \
+                                de hipermedia (HATEOAS, bloque "_links") hacia el propio recurso, \
+                                su colección y los recursos relacionados, facilitando la navegación \
+                                sin necesidad de construir URLs manualmente.""")
                         .version("1.0.0")
                         .contact(new Contact()
                                 .name("Equipo Minimarket Plus - PBY2202")

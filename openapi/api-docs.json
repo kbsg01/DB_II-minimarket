@@ -2,7 +2,7 @@
   "openapi": "3.0.1",
   "info": {
     "title": "Minimarket Plus API",
-    "description": "API REST del sistema backend Minimarket Plus. Gestiona productos, categorías, carritos, inventario, ventas y usuarios con roles (cliente, cajero, administrador). Todos los endpoints de negocio requieren autenticación HTTP Basic; use el botón Authorize (credenciales de demostración en el README).",
+    "description": "API REST del sistema backend Minimarket Plus. Gestiona productos, categorías, carritos, inventario, ventas y usuarios con roles (cliente, cajero, administrador). Todos los endpoints de negocio requieren autenticación HTTP Basic; use el botón Authorize (credenciales de demostración en el README). Las respuestas de recurso individual y colección incluyen enlaces de hipermedia (HATEOAS, bloque \"_links\") hacia el propio recurso, su colección y los recursos relacionados, facilitando la navegación sin necesidad de construir URLs manualmente.",
     "contact": {
       "name": "Equipo Minimarket Plus - PBY2202",
       "email": "karla.santigut@gmail.com"
@@ -25,36 +25,36 @@
   ],
   "tags": [
     {
+      "name": "Usuarios",
+      "description": "Gestión de usuarios y sus roles (cliente, cajero, administrador). La contraseña nunca se retorna en las respuestas. Las respuestas incluyen enlaces HATEOAS hacia los carritos y ventas del usuario."
+    },
+    {
       "name": "Carritos",
-      "description": "Gestión de los ítems del carrito de compras de los usuarios"
+      "description": "Gestión de los ítems del carrito de compras de los usuarios. Las respuestas incluyen enlaces HATEOAS hacia el producto y el usuario relacionados."
+    },
+    {
+      "name": "Detalles de venta",
+      "description": "Gestión de las líneas de detalle de cada venta (producto, cantidad y precio). Las respuestas incluyen enlaces HATEOAS hacia la venta y el producto relacionados."
+    },
+    {
+      "name": "Productos",
+      "description": "Gestión del catálogo de productos del minimarket. Las respuestas incluyen enlaces HATEOAS hacia la categoría y el inventario relacionados."
     },
     {
       "name": "Público",
       "description": "Endpoints de acceso público, sin autenticación"
     },
     {
-      "name": "Categorías",
-      "description": "Gestión de las categorías de productos del minimarket"
-    },
-    {
       "name": "Inventario",
-      "description": "Registro de movimientos de inventario (entradas y salidas) por producto"
-    },
-    {
-      "name": "Productos",
-      "description": "Gestión del catálogo de productos del minimarket"
-    },
-    {
-      "name": "Usuarios",
-      "description": "Gestión de usuarios y sus roles (cliente, cajero, administrador). La contraseña nunca se retorna en las respuestas."
-    },
-    {
-      "name": "Detalles de venta",
-      "description": "Gestión de las líneas de detalle de cada venta (producto, cantidad y precio)"
+      "description": "Registro de movimientos de inventario (entradas y salidas) por producto. Las respuestas incluyen un enlace HATEOAS hacia el producto afectado."
     },
     {
       "name": "Ventas",
-      "description": "Registro y consulta de ventas del minimarket. Los detalles de cada venta se gestionan en /api/detalle-ventas."
+      "description": "Registro y consulta de ventas del minimarket. Los detalles de cada venta se gestionan en /api/detalle-ventas. Las respuestas incluyen enlaces HATEOAS hacia el usuario y los detalles de la venta."
+    },
+    {
+      "name": "Categorías",
+      "description": "Gestión de las categorías de productos del minimarket. Las respuestas incluyen un enlace HATEOAS hacia los productos de cada categoría."
     }
   ],
   "paths": {
@@ -80,21 +80,17 @@
           }
         ],
         "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
           "404": {
             "description": "No existe un usuario con el ID indicado"
           },
           "200": {
             "description": "Usuario encontrado",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Usuario"
-                }
-              }
+              "application/json": {}
             }
-          },
-          "401": {
-            "description": "No autenticado"
           }
         }
       },
@@ -144,21 +140,20 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "No existe un usuario con el ID indicado"
-          },
           "401": {
             "description": "No autenticado"
           },
           "200": {
             "description": "Usuario actualizado correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Usuario"
-                }
-              }
+              "application/json": {}
             }
+          },
+          "404": {
+            "description": "No existe un usuario con el ID indicado"
+          },
+          "400": {
+            "description": "Datos inválidos: username duplicado, contraseña faltante o roles inexistentes"
           }
         }
       },
@@ -183,11 +178,11 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "No existe un usuario con el ID indicado"
-          },
           "401": {
             "description": "No autenticado"
+          },
+          "404": {
+            "description": "No existe un usuario con el ID indicado"
           },
           "204": {
             "description": "Usuario eliminado correctamente"
@@ -217,18 +212,14 @@
           }
         ],
         "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
           "200": {
             "description": "Producto encontrado",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Producto"
-                }
-              }
+              "application/json": {}
             }
-          },
-          "401": {
-            "description": "No autenticado"
           },
           "404": {
             "description": "No existe un producto con el ID indicado"
@@ -283,18 +274,17 @@
           "401": {
             "description": "No autenticado"
           },
-          "404": {
-            "description": "No existe un producto con el ID indicado"
-          },
           "200": {
             "description": "Producto actualizado correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Producto"
-                }
-              }
+              "application/json": {}
             }
+          },
+          "404": {
+            "description": "No existe un producto con el ID indicado"
+          },
+          "400": {
+            "description": "Datos inválidos: nombre, precio, stock o categoría faltantes o mal formados"
           }
         }
       },
@@ -353,18 +343,14 @@
           }
         ],
         "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
           "200": {
             "description": "Movimiento encontrado",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Inventario"
-                }
-              }
+              "application/json": {}
             }
-          },
-          "401": {
-            "description": "No autenticado"
           },
           "404": {
             "description": "No existe un movimiento con el ID indicado"
@@ -416,6 +402,9 @@
           "required": true
         },
         "responses": {
+          "400": {
+            "description": "Datos inválidos: producto, cantidad o tipo de movimiento faltantes o mal formados"
+          },
           "401": {
             "description": "No autenticado"
           },
@@ -425,11 +414,7 @@
           "200": {
             "description": "Movimiento actualizado correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Inventario"
-                }
-              }
+              "application/json": {}
             }
           }
         }
@@ -489,20 +474,16 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "No existe un detalle con el ID indicado"
-          },
           "401": {
             "description": "No autenticado"
+          },
+          "404": {
+            "description": "No existe un detalle con el ID indicado"
           },
           "200": {
             "description": "Detalle encontrado",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DetalleVenta"
-                }
-              }
+              "application/json": {}
             }
           }
         }
@@ -554,20 +535,19 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "No existe un detalle con el ID indicado"
-          },
           "401": {
             "description": "No autenticado"
+          },
+          "400": {
+            "description": "Datos inválidos: venta, producto, cantidad o precio faltantes o mal formados"
+          },
+          "404": {
+            "description": "No existe un detalle con el ID indicado"
           },
           "200": {
             "description": "Detalle actualizado correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DetalleVenta"
-                }
-              }
+              "application/json": {}
             }
           }
         }
@@ -593,11 +573,11 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "No existe un detalle con el ID indicado"
-          },
           "401": {
             "description": "No autenticado"
+          },
+          "404": {
+            "description": "No existe un detalle con el ID indicado"
           },
           "204": {
             "description": "Detalle eliminado correctamente"
@@ -630,18 +610,14 @@
           "401": {
             "description": "No autenticado"
           },
+          "404": {
+            "description": "No existe una categoría con el ID indicado"
+          },
           "200": {
             "description": "Categoría encontrada",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Categoria"
-                }
-              }
+              "application/json": {}
             }
-          },
-          "404": {
-            "description": "No existe una categoría con el ID indicado"
           }
         }
       },
@@ -688,18 +664,17 @@
           "401": {
             "description": "No autenticado"
           },
-          "200": {
-            "description": "Categoría actualizada correctamente",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Categoria"
-                }
-              }
-            }
+          "400": {
+            "description": "Datos inválidos: nombre faltante o duplicado"
           },
           "404": {
             "description": "No existe una categoría con el ID indicado"
+          },
+          "200": {
+            "description": "Categoría actualizada correctamente",
+            "content": {
+              "application/json": {}
+            }
           }
         }
       },
@@ -727,11 +702,11 @@
           "401": {
             "description": "No autenticado"
           },
-          "404": {
-            "description": "No existe una categoría con el ID indicado"
-          },
           "204": {
             "description": "Categoría eliminada correctamente"
+          },
+          "404": {
+            "description": "No existe una categoría con el ID indicado"
           }
         }
       }
@@ -758,20 +733,16 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "No autenticado"
-          },
           "404": {
             "description": "No existe un ítem con el ID indicado"
+          },
+          "401": {
+            "description": "No autenticado"
           },
           "200": {
             "description": "Ítem encontrado",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Carrito"
-                }
-              }
+              "application/json": {}
             }
           }
         }
@@ -822,21 +793,20 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Ítem actualizado correctamente",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Carrito"
-                }
-              }
-            }
+          "404": {
+            "description": "No existe un ítem con el ID indicado"
           },
           "401": {
             "description": "No autenticado"
           },
-          "404": {
-            "description": "No existe un ítem con el ID indicado"
+          "400": {
+            "description": "Datos inválidos: usuario, producto o cantidad faltantes o mal formados"
+          },
+          "200": {
+            "description": "Ítem actualizado correctamente",
+            "content": {
+              "application/json": {}
+            }
           }
         }
       },
@@ -861,11 +831,11 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "No autenticado"
-          },
           "404": {
             "description": "No existe un ítem con el ID indicado"
+          },
+          "401": {
+            "description": "No autenticado"
           },
           "204": {
             "description": "Ítem eliminado correctamente"
@@ -878,25 +848,31 @@
         "tags": [
           "Ventas"
         ],
-        "summary": "Listar todas las ventas",
-        "description": "Retorna todas las ventas registradas con su usuario, fecha y detalles.",
+        "summary": "Listar ventas",
+        "description": "Retorna las ventas registradas con su usuario, fecha y detalles. Si se indica `usuarioId`, filtra solo las ventas de ese usuario.",
         "operationId": "listarVentas",
+        "parameters": [
+          {
+            "name": "usuarioId",
+            "in": "query",
+            "description": "Filtra las ventas de un usuario específico",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 2
+          }
+        ],
         "responses": {
-          "401": {
-            "description": "No autenticado"
-          },
           "200": {
             "description": "Listado obtenido correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Venta"
-                  }
-                }
-              }
+              "application/json": {}
             }
+          },
+          "401": {
+            "description": "No autenticado"
           }
         }
       },
@@ -936,12 +912,11 @@
           "201": {
             "description": "Venta registrada correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Venta"
-                }
-              }
+              "application/json": {}
             }
+          },
+          "400": {
+            "description": "Datos inválidos: usuario o fecha faltantes o mal formados"
           }
         }
       }
@@ -958,14 +933,7 @@
           "200": {
             "description": "Listado obtenido correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Usuario"
-                  }
-                }
-              }
+              "application/json": {}
             }
           },
           "401": {
@@ -1012,12 +980,11 @@
           "201": {
             "description": "Usuario creado correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Usuario"
-                }
-              }
+              "application/json": {}
             }
+          },
+          "400": {
+            "description": "Datos inválidos: username duplicado, contraseña faltante o roles inexistentes"
           }
         }
       }
@@ -1027,21 +994,27 @@
         "tags": [
           "Productos"
         ],
-        "summary": "Listar todos los productos",
-        "description": "Retorna el catálogo completo de productos registrados en el minimarket.",
+        "summary": "Listar productos",
+        "description": "Retorna el catálogo de productos registrados. Si se indica `categoriaId`, filtra solo los productos de esa categoría.",
         "operationId": "listarProductos",
+        "parameters": [
+          {
+            "name": "categoriaId",
+            "in": "query",
+            "description": "Filtra los productos de una categoría específica",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
         "responses": {
           "200": {
             "description": "Listado obtenido correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Producto"
-                  }
-                }
-              }
+              "application/json": {}
             }
           },
           "401": {
@@ -1087,12 +1060,11 @@
           "201": {
             "description": "Producto creado correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Producto"
-                }
-              }
+              "application/json": {}
             }
+          },
+          "400": {
+            "description": "Datos inválidos: nombre, precio, stock o categoría faltantes o mal formados"
           }
         }
       }
@@ -1102,25 +1074,31 @@
         "tags": [
           "Inventario"
         ],
-        "summary": "Listar todos los movimientos de inventario",
-        "description": "Retorna el historial completo de entradas y salidas de productos.",
+        "summary": "Listar movimientos de inventario",
+        "description": "Retorna el historial de entradas y salidas. Si se indica `productoId`, filtra solo los movimientos de ese producto.",
         "operationId": "listarMovimientosDeInventario",
+        "parameters": [
+          {
+            "name": "productoId",
+            "in": "query",
+            "description": "Filtra los movimientos de un producto específico",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
         "responses": {
-          "401": {
-            "description": "No autenticado"
-          },
           "200": {
             "description": "Listado obtenido correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Inventario"
-                  }
-                }
-              }
+              "application/json": {}
             }
+          },
+          "401": {
+            "description": "No autenticado"
           }
         }
       },
@@ -1156,18 +1134,17 @@
           "required": true
         },
         "responses": {
-          "401": {
-            "description": "No autenticado"
-          },
           "201": {
             "description": "Movimiento registrado correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Inventario"
-                }
-              }
+              "application/json": {}
             }
+          },
+          "400": {
+            "description": "Datos inválidos: producto, cantidad o tipo de movimiento faltantes o mal formados"
+          },
+          "401": {
+            "description": "No autenticado"
           }
         }
       }
@@ -1177,21 +1154,27 @@
         "tags": [
           "Detalles de venta"
         ],
-        "summary": "Listar todos los detalles de venta",
-        "description": "Retorna todas las líneas de detalle registradas con su venta, producto, cantidad y precio.",
+        "summary": "Listar detalles de venta",
+        "description": "Retorna las líneas de detalle registradas. Si se indica `ventaId`, filtra solo los detalles de esa venta.",
         "operationId": "listarDetalleVentas",
+        "parameters": [
+          {
+            "name": "ventaId",
+            "in": "query",
+            "description": "Filtra los detalles de una venta específica",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
         "responses": {
           "200": {
             "description": "Listado obtenido correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DetalleVenta"
-                  }
-                }
-              }
+              "application/json": {}
             }
           },
           "401": {
@@ -1233,18 +1216,17 @@
           "required": true
         },
         "responses": {
-          "401": {
-            "description": "No autenticado"
-          },
           "201": {
             "description": "Detalle creado correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DetalleVenta"
-                }
-              }
+              "application/json": {}
             }
+          },
+          "401": {
+            "description": "No autenticado"
+          },
+          "400": {
+            "description": "Datos inválidos: venta, producto, cantidad o precio faltantes o mal formados"
           }
         }
       }
@@ -1258,21 +1240,14 @@
         "description": "Retorna todas las categorías registradas para clasificar productos.",
         "operationId": "listarCategorias",
         "responses": {
-          "401": {
-            "description": "No autenticado"
-          },
           "200": {
             "description": "Listado obtenido correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Categoria"
-                  }
-                }
-              }
+              "application/json": {}
             }
+          },
+          "401": {
+            "description": "No autenticado"
           }
         }
       },
@@ -1306,14 +1281,13 @@
           "401": {
             "description": "No autenticado"
           },
+          "400": {
+            "description": "Datos inválidos: nombre faltante o duplicado"
+          },
           "201": {
             "description": "Categoría creada correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Categoria"
-                }
-              }
+              "application/json": {}
             }
           }
         }
@@ -1324,25 +1298,31 @@
         "tags": [
           "Carritos"
         ],
-        "summary": "Listar todos los ítems de carrito",
-        "description": "Retorna todos los ítems de carrito registrados, con su usuario, producto y cantidad.",
+        "summary": "Listar ítems de carrito",
+        "description": "Retorna los ítems de carrito registrados. Si se indica `usuarioId`, filtra solo los ítems de ese usuario.",
         "operationId": "listarCarrito",
+        "parameters": [
+          {
+            "name": "usuarioId",
+            "in": "query",
+            "description": "Filtra los ítems de carrito de un usuario específico",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 3
+          }
+        ],
         "responses": {
-          "401": {
-            "description": "No autenticado"
-          },
           "200": {
             "description": "Listado obtenido correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Carrito"
-                  }
-                }
-              }
+              "application/json": {}
             }
+          },
+          "401": {
+            "description": "No autenticado"
           }
         }
       },
@@ -1379,18 +1359,17 @@
           "required": true
         },
         "responses": {
+          "401": {
+            "description": "No autenticado"
+          },
+          "400": {
+            "description": "Datos inválidos: usuario, producto o cantidad faltantes o mal formados"
+          },
           "201": {
             "description": "Producto agregado al carrito correctamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Carrito"
-                }
-              }
+              "application/json": {}
             }
-          },
-          "401": {
-            "description": "No autenticado"
           }
         }
       }
@@ -1441,20 +1420,16 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "No autenticado"
-          },
           "404": {
             "description": "No existe una venta con el ID indicado"
+          },
+          "401": {
+            "description": "No autenticado"
           },
           "200": {
             "description": "Venta encontrada",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Venta"
-                }
-              }
+              "application/json": {}
             }
           }
         }
