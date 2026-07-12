@@ -35,19 +35,23 @@ El trabajo de autenticación, pruebas unitarias y documentación OpenAPI de las 
 
 ## 3. Evidencia de ejecución
 
-Los siguientes escenarios (detallados en [`specs/001-hateoas-openapi-avanzado/quickstart.md`](../../specs/001-hateoas-openapi-avanzado/quickstart.md)) se ejecutaron localmente contra `http://localhost:8080` con los datos de demostración cargados por `DataLoader`. Las capturas se encuentran en [`doc/img/s8/`](../img/s8/):
+Los siguientes escenarios (detallados en [`specs/001-hateoas-openapi-avanzado/quickstart.md`](../../specs/001-hateoas-openapi-avanzado/quickstart.md)) se ejecutaron localmente contra `http://localhost:8080` con los datos de demostración cargados por `DataLoader`. Las capturas originales están en [`doc/img/s8/`](../img/s8/).
 
-| Captura | Contenido |
-|---|---|
-| [`01-swagger-ui-general.png`](../img/s8/01-swagger-ui-general.png) | Swagger UI con los 7 recursos de negocio documentados y botón Authorize |
-| [`02-swagger-producto-por-id.png`](../img/s8/02-swagger-producto-por-id.png) | Operación `GET /api/productos/{id}` expandida con parámetros y respuestas 200/401/404 |
-| [`03-producto-links.png`](../img/s8/03-producto-links.png) | Respuesta real con bloque `_links` (self, productos, categoria, inventario) |
-| [`04-inventario-filtrado-links.png`](../img/s8/04-inventario-filtrado-links.png) | Colección filtrada `GET /api/inventario?productoId=1` con `_links` por elemento |
-| [`05-v3-api-docs.png`](../img/s8/05-v3-api-docs.png) | Contrato OpenAPI JSON expuesto en `/v3/api-docs` |
-| [`06-venta-links.png`](../img/s8/06-venta-links.png) | Venta con enlace `detalles` hacia sus líneas de detalle |
-| [`07-regresion-401.png`](../img/s8/07-regresion-401.png) | Petición sin credenciales rechazada con `401 Unauthorized` |
+### a) Swagger UI con los 7 recursos documentados
 
-**a) Recurso individual con enlaces HATEOAS** — `GET /api/productos/1` (autenticado como `admin`), ver captura 03:
+Vista general de Swagger UI: los 7 recursos de negocio agrupados con su descripción (mencionando los enlaces HATEOAS de cada uno) y el botón **Authorize** para HTTP Basic.
+
+![Swagger UI - vista general](../img/s8/01-swagger-ui-general.png)
+
+Operación `GET /api/productos/{id}` expandida, con su parámetro documentado (`id`, con ejemplo) y las respuestas `200`, `401` y `404`:
+
+![Swagger UI - GET producto por ID expandido](../img/s8/02-swagger-producto-por-id.png)
+
+### b) Recurso individual con enlaces HATEOAS
+
+`GET /api/productos/1` (autenticado como `admin`) devuelve el producto envuelto con su bloque `_links` — enlaces `self`, `productos` (colección), `categoria` e `inventario` resaltados:
+
+![Respuesta de producto con _links](../img/s8/03-producto-links.png)
 
 ```json
 {"id":1,"nombre":"Coca-Cola 1.5L","precio":1890.0,"stock":24,"categoria":{"id":1,"nombre":"Bebidas"},
@@ -58,15 +62,33 @@ Los siguientes escenarios (detallados en [`specs/001-hateoas-openapi-avanzado/qu
    "inventario":{"href":"http://localhost:8080/api/inventario?productoId=1"}}}
 ```
 
-**b) Colección filtrada por relación** — `GET /api/inventario?productoId=1`: devuelve únicamente los movimientos de ese producto, con `_links.self` apuntando a la misma URL filtrada y cada elemento embebido con su propio `_links.self` y `_links.producto`.
+### c) Colección filtrada por relación
 
-**c) Navegación venta → detalles** — `GET /api/ventas/1` incluye `_links.detalles` apuntando a `/api/detalle-ventas?ventaId=1`, que al seguirse devuelve exactamente las 2 líneas de esa venta.
+`GET /api/inventario?productoId=1` devuelve únicamente los movimientos de ese producto, con `_links.self` apuntando a la misma URL filtrada y cada elemento embebido con su propio `_links.self` y `_links.producto`:
 
-**d) Regresión de seguridad** — `GET /api/productos/1` sin credenciales devuelve `401 Unauthorized`, igual que antes de incorporar HATEOAS (sin degradación de la autenticación HTTP Basic existente).
+![Inventario filtrado por producto con _links](../img/s8/04-inventario-filtrado-links.png)
 
-**e) Pruebas automatizadas**: se agregaron 6 pruebas nuevas (`ProductoControllerHateoasTest`, `VentaControllerHateoasTest`, `HateoasSecurityRegressionTest`) que verifican programáticamente los puntos (a)-(d). El suite completo (`./mvnw test`) pasa 7/7 pruebas.
+### d) Navegación venta → detalles
 
-**f) Swagger UI y Postman**: se verificó en `http://localhost:8080/swagger-ui.html` que las 7 secciones muestran los nuevos parámetros de filtro y las respuestas `400`; el contrato actualizado se exportó a [`openapi/api-docs.json`](../../openapi/api-docs.json) (15 rutas) e importa correctamente en Postman con Basic Auth.
+`GET /api/ventas/1` incluye `_links.detalles` apuntando a `/api/detalle-ventas?ventaId=1`, que al seguirse devuelve exactamente las 2 líneas de esa venta:
+
+![Venta con enlace hacia sus detalles](../img/s8/06-venta-links.png)
+
+### e) Regresión de seguridad
+
+`GET /api/productos/1` sin credenciales devuelve `401 Unauthorized` con el header `WWW-Authenticate: Basic`, igual que antes de incorporar HATEOAS (sin degradación de la autenticación existente):
+
+![Petición sin credenciales rechazada con 401](../img/s8/07-regresion-401.png)
+
+### f) Contrato OpenAPI exportado
+
+El contrato actualizado expuesto en `/v3/api-docs` (15 rutas), exportado a [`openapi/api-docs.json`](../../openapi/api-docs.json) e importable en Postman con Basic Auth:
+
+![Contrato OpenAPI en /v3/api-docs](../img/s8/05-v3-api-docs.png)
+
+### g) Pruebas automatizadas
+
+Se agregaron 6 pruebas nuevas (`ProductoControllerHateoasTest`, `VentaControllerHateoasTest`, `HateoasSecurityRegressionTest`) que verifican programáticamente los puntos (b)-(e). El suite completo (`./mvnw test`) pasa **7/7 pruebas** con `BUILD SUCCESS`.
 
 ## 4. Reflexión técnica
 
