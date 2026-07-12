@@ -35,9 +35,19 @@ El trabajo de autenticación, pruebas unitarias y documentación OpenAPI de las 
 
 ## 3. Evidencia de ejecución
 
-Los siguientes escenarios (detallados en [`specs/001-hateoas-openapi-avanzado/quickstart.md`](../../specs/001-hateoas-openapi-avanzado/quickstart.md)) se ejecutaron localmente contra `http://localhost:8080` con los datos de demostración cargados por `DataLoader`:
+Los siguientes escenarios (detallados en [`specs/001-hateoas-openapi-avanzado/quickstart.md`](../../specs/001-hateoas-openapi-avanzado/quickstart.md)) se ejecutaron localmente contra `http://localhost:8080` con los datos de demostración cargados por `DataLoader`. Las capturas se encuentran en [`doc/img/s8/`](../img/s8/):
 
-**a) Recurso individual con enlaces HATEOAS** — `GET /api/productos/1` (autenticado como `admin`):
+| Captura | Contenido |
+|---|---|
+| [`01-swagger-ui-general.png`](../img/s8/01-swagger-ui-general.png) | Swagger UI con los 7 recursos de negocio documentados y botón Authorize |
+| [`02-swagger-producto-por-id.png`](../img/s8/02-swagger-producto-por-id.png) | Operación `GET /api/productos/{id}` expandida con parámetros y respuestas 200/401/404 |
+| [`03-producto-links.png`](../img/s8/03-producto-links.png) | Respuesta real con bloque `_links` (self, productos, categoria, inventario) |
+| [`04-inventario-filtrado-links.png`](../img/s8/04-inventario-filtrado-links.png) | Colección filtrada `GET /api/inventario?productoId=1` con `_links` por elemento |
+| [`05-v3-api-docs.png`](../img/s8/05-v3-api-docs.png) | Contrato OpenAPI JSON expuesto en `/v3/api-docs` |
+| [`06-venta-links.png`](../img/s8/06-venta-links.png) | Venta con enlace `detalles` hacia sus líneas de detalle |
+| [`07-regresion-401.png`](../img/s8/07-regresion-401.png) | Petición sin credenciales rechazada con `401 Unauthorized` |
+
+**a) Recurso individual con enlaces HATEOAS** — `GET /api/productos/1` (autenticado como `admin`), ver captura 03:
 
 ```json
 {"id":1,"nombre":"Coca-Cola 1.5L","precio":1890.0,"stock":24,"categoria":{"id":1,"nombre":"Bebidas"},
