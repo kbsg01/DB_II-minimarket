@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedback Grupo 7 - MiniMarket Plus</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --duoc-blue: #002f6c;
+      --duoc-gold: #fecb00;
+      --duoc-ink: #0f172a;
+      --duoc-muted: #64748b;
+      --duoc-bg: #f8fafc;
+    }
+    body { font-family: 'Inter', sans-serif; background: #e2e8f0; color: var(--duoc-ink); }
+    .sheet { max-width: 1180px; margin: 32px auto; background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(15,23,42,.12); }
+    .hero { background: linear-gradient(135deg, var(--duoc-blue), #001b44 75%); color: #fff; padding: 36px; border-bottom: 6px solid var(--duoc-gold); }
+    .chip { display: inline-block; background: var(--duoc-gold); color: #1f2937; font-weight: 800; font-size: .78rem; letter-spacing: .04em; border-radius: 999px; padding: 8px 14px; text-transform: uppercase; }
+    .section-card { border: 0; border-radius: 18px; box-shadow: 0 8px 24px rgba(15,23,42,.07); }
+    .status-box { background: linear-gradient(180deg, #fef2f2, #fff); border: 1px solid #fecaca; border-radius: 18px; padding: 22px; height: 100%; }
+    .pill { display: inline-block; padding: 6px 12px; border-radius: 999px; font-size: .82rem; font-weight: 700; }
+    .pill-l { background: #dcfce7; color: #166534; }
+    .pill-ml { background: #fef3c7; color: #92400e; }
+    .pill-nl { background: #fee2e2; color: #991b1b; }
+    .note { border-left: 4px solid var(--duoc-gold); background: #fffbea; padding: 16px 18px; border-radius: 0 12px 12px 0; }
+    .evidence { background: #0f172a; color: #e2e8f0; border-radius: 14px; padding: 16px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9rem; white-space: pre-wrap; }
+    .table thead th { background: var(--duoc-blue); color: white; border: 0; vertical-align: middle; }
+    .table tbody td { vertical-align: top; }
+    .soft { color: var(--duoc-muted); }
+    .footer { background: var(--duoc-blue); color: white; padding: 22px 30px; border-top: 5px solid var(--duoc-gold); }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <header class="hero">
+      <div class="d-flex flex-wrap justify-content-between gap-3 align-items-start">
+        <div>
+          <span class="chip">PBY2202 · Programación Backend</span>
+          <h1 class="mt-3 mb-2 fw-bold">Feedback técnico · Grupo 7</h1>
+          <p class="mb-2" style="color: rgba(255,255,255,.78);">Actividad: MiniMarket Plus · OpenAPI + HATEOAS · Formato de retroalimentación DUOC UC</p>
+          <small style="color: rgba(255,255,255,.76);">Revisión basada en el documento <strong>PBY2202_Exp3_S8_Grupo7.docx</strong> y en el repositorio entregado <strong>DB_II-minimarket-feat-hateoas-s8</strong>.</small>
+        </div>
+        <div class="bg-white text-dark rounded-4 p-3 shadow-sm" style="min-width: 240px;">
+          <div class="text-uppercase small fw-bold text-secondary">Estado</div>
+          <div class="fs-5 fw-bold text-danger">Evaluación finalizada</div>
+          <div class="small text-secondary mt-1">Grupo evaluado: 7</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="p-4 p-md-5" style="background: var(--duoc-bg);">
+      <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+          <div class="card section-card h-100">
+            <div class="card-body p-4">
+              <h3 class="fw-bold mb-3" style="color: var(--duoc-blue);">Resumen ejecutivo de la revisión</h3>
+              <p>El Grupo 7 presenta un <strong>documento técnico muy completo</strong>. El archivo <strong>PBY2202_Exp3_S8_Grupo7.docx</strong> desarrolla con bastante detalle el diseño de endpoints, la justificación de OpenAPI, la integración de HATEOAS, la exportación del contrato OpenAPI, la validación en Postman, una estrategia de mantención y hasta referencias explícitas a pruebas y seguridad. A nivel documental, el trabajo está claramente por sobre el promedio.</p>
+              <p>El problema importante aparece al contrastar ese informe con el <strong>repositorio realmente entregado</strong>. En la revisión del código fuente no se encontraron evidencias consistentes de que el proyecto subido corresponda al mismo estado descrito por el informe. El <code>pom.xml</code> visible no incluye las dependencias de <strong>springdoc-openapi</strong> ni <strong>spring-boot-starter-hateoas</strong>, los controladores revisados devuelven entidades o listas simples sin <code>EntityModel</code>, <code>CollectionModel</code>, <code>linkTo(methodOn(...))</code> ni assemblers, y el directorio de pruebas solo contiene <strong>2 archivos de test</strong>, pese a que el documento declara una suite 7/7 con clases nuevas específicas para HATEOAS y regresión de seguridad.</p>
+              <p>Además, al ejecutar <code>./mvnw test</code> el proyecto entregado no logró ni siquiera pasar la fase de recursos: terminó en <strong>BUILD FAILURE</strong>. En el archivo <code>application.properties</code> también se observan problemas de codificación de caracteres, lo que refuerza la impresión de que el repositorio disponible no corresponde exactamente al entregable descrito en el informe o bien fue empacado en un estado inconsistente.</p>
+              <div class="note mt-3"><strong>Conclusión general:</strong> el Grupo 7 demuestra un <strong>muy buen nivel de documentación</strong>, pero la evaluación académica debe considerar la coherencia entre <strong>documento + código + ejecución</strong>. Dado que el repositorio entregado <strong>no respalda de forma verificable</strong> lo que afirma el informe, la calificación cualitativa más justa es <strong>Medianamente Logrado</strong>.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="status-box">
+            <div class="text-uppercase small fw-bold text-secondary">Calificación general</div>
+            <div class="mt-2 mb-3"><span class="pill pill-ml">Medianamente Logrado</span></div>
+            <div class="d-flex justify-content-between"><span class="soft">Documentación escrita</span><strong class="text-success">Muy fuerte</strong></div>
+            <div class="d-flex justify-content-between"><span class="soft">OpenAPI en repo</span><strong class="text-danger">No verificable</strong></div>
+            <div class="d-flex justify-content-between"><span class="soft">HATEOAS en repo</span><strong class="text-danger">No verificable</strong></div>
+            <div class="d-flex justify-content-between"><span class="soft">Pruebas en repo</span><strong class="text-danger">Inconsistentes</strong></div>
+            <div class="d-flex justify-content-between"><span class="soft">Build en revisión</span><strong class="text-danger">Falló</strong></div>
+            <hr>
+            <p class="soft mb-0">Se omite nota numérica, priorizando una evaluación cualitativa centrada en evidencia verificable.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card section-card mb-4">
+        <div class="card-body p-4">
+          <h3 class="fw-bold mb-3" style="color: var(--duoc-blue);">Evidencias objetivas levantadas</h3>
+          <div class="row g-3">
+            <div class="col-md-6"><div class="evidence">Documento PBY2202_Exp3_S8_Grupo7.docx
+- Muy desarrollado
+- Describe 7 recursos documentados
+- Explica uso de RepresentationModelAssembler
+- Declara filtros por FK y navegación HATEOAS
+- Declara 7/7 pruebas aprobadas
+- Incluye enlace de GitHub y referencias a capturas/evidencias</div></div>
+            <div class="col-md-6"><div class="evidence">README del repositorio
+- Afirma Swagger UI en /swagger-ui.html
+- Afirma OpenAPI en /v3/api-docs
+- Afirma seguridad HTTP Basic
+- Afirma bloque _links en 7 recursos
+- Afirma importación de openapi/api-docs.json en Postman</div></div>
+            <div class="col-md-6"><div class="evidence">pom.xml realmente revisado
+Dependencias presentes:
+- spring-boot-starter-web
+- spring-boot-starter-data-jpa
+- spring-boot-starter-security
+- spring-boot-starter-test
+- spring-security-test
+- lombok
+- h2
+Dependencias NO observadas:
+- springdoc-openapi-starter-webmvc-ui
+- spring-boot-starter-hateoas</div></div>
+            <div class="col-md-6"><div class="evidence">Código revisado en controladores
+ProductoController e InventarioController:
+- devuelven List<Entidad> o ResponseEntity<Entidad>
+- no usan EntityModel
+- no usan CollectionModel
+- no usan linkTo(methodOn(...))
+- no usan assemblers
+Conclusión: el código visible no refleja la implementación HATEOAS descrita en el informe.</div></div>
+            <div class="col-md-6"><div class="evidence">Pruebas encontradas en repo
+- MinimarketApplicationTests.java
+- UsuarioTest.java
+Total: 2 archivos
+Esto contradice la documentación, que habla de nuevas clases:
+- ProductoControllerHateoasTest
+- VentaControllerHateoasTest
+- HateoasSecurityRegressionTest</div></div>
+            <div class="col-md-6"><div class="evidence">Seguridad observada
+SecurityConfig exige autenticación general salvo /public/**
+Pero el README afirma detalles más avanzados:
+- Swagger y /v3/api-docs públicos
+- HTTP Basic con credenciales demo
+Nada de eso quedó respaldado de forma completa en el código visible.</div></div>
+            <div class="col-12"><div class="evidence">Resultado de ejecución
+Comando ejecutado: ./mvnw test
+Resultado: BUILD FAILURE
+Falla en fase de resources
+Además, application.properties muestra texto con caracteres corruptos (por ejemplo "Configuraci���n"), lo que sugiere un problema de codificación o empaquetado del entregable.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card section-card mb-4">
+        <div class="card-body p-4">
+          <h3 class="fw-bold mb-4" style="color: var(--duoc-blue);">Matriz de evaluación cualitativa</h3>
+          <div class="table-responsive">
+            <table class="table table-bordered align-middle bg-white">
+              <thead>
+                <tr>
+                  <th style="width: 28%;">Criterio</th>
+                  <th style="width: 12%;">Nivel</th>
+                  <th>Feedback técnico</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>1. Diseña y documenta los endpoints utilizando OpenAPI</strong></td>
+                  <td><span class="pill pill-ml">Medianamente Logrado</span></td>
+                  <td>El informe documenta muy bien este aspecto, pero el repositorio entregado no permite verificar la implementación real de OpenAPI en el estado revisado.</td>
+                </tr>
+                <tr>
+                  <td><strong>2. Configura el entorno integrando OpenAPI y HATEOAS</strong></td>
+                  <td><span class="pill pill-nl">Por verificar</span></td>
+                  <td>La documentación afirma esta integración, pero en el <code>pom.xml</code> revisado no aparecen las dependencias centrales de springdoc ni HATEOAS.</td>
+                </tr>
+                <tr>
+                  <td><strong>3. Implementa HATEOAS en los endpoints</strong></td>
+                  <td><span class="pill pill-nl">Por verificar</span></td>
+                  <td>El informe describe assemblers y enlaces hipermedia, pero los controladores visibles no presentan la implementación correspondiente.</td>
+                </tr>
+                <tr>
+                  <td><strong>4. Genera y valida documentación en Swagger UI</strong></td>
+                  <td><span class="pill pill-ml">Medianamente Logrado</span></td>
+                  <td>Hay evidencia documental y capturas referenciadas, pero el proyecto revisado no permitió reproducir esa validación en ejecución.</td>
+                </tr>
+                <tr>
+                  <td><strong>5. Analiza y reflexiona sobre calidad, navegabilidad y mantenibilidad</strong></td>
+                  <td><span class="pill pill-l">Logrado</span></td>
+                  <td>El informe técnico sí desarrolla este criterio con profundidad, incluyendo justificación arquitectónica, estrategia de mantención y valor para integradores.</td>
+                </tr>
+                <tr>
+                  <td><strong>6. Documenta el proceso técnico y organiza el entregable</strong></td>
+                  <td><span class="pill pill-ml">Medianamente Logrado</span></td>
+                  <td>La parte documental está muy bien organizada, pero existe una brecha seria entre lo que el informe declara y lo que el repositorio entregado permite corroborar.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+          <div class="card section-card h-100">
+            <div class="card-body p-4">
+              <h4 class="fw-bold text-success mb-3">Fortalezas detectadas</h4>
+              <ul class="mb-0">
+                <li>Informe técnico muy completo, claro y bien escrito.</li>
+                <li>Buena reflexión sobre estándares REST, navegabilidad y mantenibilidad.</li>
+                <li>Se nota intención de trabajar con criterios más avanzados que el mínimo de la pauta.</li>
+                <li>La organización documental y la narrativa técnica son superiores al promedio.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card section-card h-100">
+            <div class="card-body p-4">
+              <h4 class="fw-bold text-danger mb-3">Observaciones de mejora</h4>
+              <ul class="mb-0">
+                <li>El repositorio entregado debe corresponder exactamente al estado descrito en el informe.</li>
+                <li>No basta con documentar HATEOAS y OpenAPI: debe poder verificarse en código y ejecución.</li>
+                <li>La cantidad de pruebas visibles no coincide con las pruebas declaradas en el documento.</li>
+                <li>El proyecto debe compilar y ejecutar pruebas sin fallar en la revisión.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card section-card mb-4">
+        <div class="card-body p-4">
+          <h3 class="fw-bold mb-3" style="color: var(--duoc-blue);">Recomendaciones concretas</h3>
+          <ol class="mb-0">
+            <li><strong>Alinear documento y código:</strong> volver a empaquetar o subir el repositorio correcto, asegurando que lo descrito en el informe exista realmente en la entrega.</li>
+            <li><strong>Verificar dependencias:</strong> confirmar presencia de springdoc-openapi y spring-hateoas en el <code>pom.xml</code> final.</li>
+            <li><strong>Entregar evidencia ejecutable:</strong> el build debe correr sin errores en un entorno estándar de revisión.</li>
+            <li><strong>Evitar inconsistencias entre ramas o zips:</strong> si el informe está basado en otra rama, esa debe ser la rama o snapshot efectivamente entregada.</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="card section-card">
+        <div class="card-body p-4">
+          <h3 class="fw-bold mb-3" style="color: var(--duoc-blue);">Comentario final para el grupo</h3>
+          <p class="mb-0">El Grupo 7 demuestra una capacidad documental muy buena y una comprensión teórica sólida de OpenAPI + HATEOAS. El problema no está en la redacción, sino en la <strong>trazabilidad técnica del entregable</strong>: el repositorio revisado no valida lo que el informe afirma. En resumen: <strong>hay mérito claro en la documentación, pero falta coherencia verificable entre informe, código y ejecución para considerar la entrega completamente lograda</strong>.</p>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer text-center">
+      <div class="fw-bold">Duoc UC · Retroalimentación académica</div>
+      <div class="small text-white-50">Revisión preparada para Grupo 7 · Elaborado por Jorge Carmona</div>
+    </footer>
+  </div>
+</body>
+</html>
