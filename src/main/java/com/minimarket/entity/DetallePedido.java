@@ -4,22 +4,20 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
 @Entity
-public class DetalleVenta {
+public class DetallePedido {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     * @JsonIgnoreProperties("detalles") corta el ciclo Venta->detalles->DetalleVenta->venta->detalles->...
-     * al serializar (descubierto en T044, el mismo tipo de bug que Usuario/Rol). Se
-     * conserva el resto de los campos de Venta (id, usuario, fecha) para no perder
-     * contexto, y el enlace HATEOAS `venta` (DetalleVentaModelAssembler) sigue
-     * ofreciendo la navegación completa sin duplicar el objeto embebido.
+     * @JsonIgnoreProperties("detalles") corta el ciclo Pedido->detalles->DetallePedido->pedido->detalles->...
+     * (mismo bug de Venta/DetalleVenta, ver T044). Sin esto, `POST /api/pedidos`
+     * recursaría infinitamente al confirmar un pedido con detalles reales.
      */
     @JsonIgnoreProperties("detalles")
     @ManyToOne
-    @JoinColumn(name = "venta_id", nullable = false)
-    private Venta venta;
+    @JoinColumn(name = "pedido_id", nullable = false)
+    private Pedido pedido;
 
     @ManyToOne
     @JoinColumn(name = "producto_id", nullable = false)
@@ -29,7 +27,7 @@ public class DetalleVenta {
     private Integer cantidad;
 
     @Column(nullable = false)
-    private Double precio;
+    private Double precioAplicado;
 
     // Getters y Setters
     public Long getId() {
@@ -40,12 +38,12 @@ public class DetalleVenta {
         this.id = id;
     }
 
-    public Venta getVenta() {
-        return venta;
+    public Pedido getPedido() {
+        return pedido;
     }
 
-    public void setVenta(Venta venta) {
-        this.venta = venta;
+    public void setPedido(Pedido pedido) {
+        this.pedido = pedido;
     }
 
     public Producto getProducto() {
@@ -64,11 +62,11 @@ public class DetalleVenta {
         this.cantidad = cantidad;
     }
 
-    public Double getPrecio() {
-        return precio;
+    public Double getPrecioAplicado() {
+        return precioAplicado;
     }
 
-    public void setPrecio(Double precio) {
-        this.precio = precio;
+    public void setPrecioAplicado(Double precioAplicado) {
+        this.precioAplicado = precioAplicado;
     }
 }

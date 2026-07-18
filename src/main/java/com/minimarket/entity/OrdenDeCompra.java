@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import java.util.Date;
 
 @Entity
-public class Inventario {
+public class OrdenDeCompra {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -17,14 +17,18 @@ public class Inventario {
     @JoinColumn(name = "sucursal_id", nullable = false)
     private Sucursal sucursal;
 
-    @Column(nullable = false)
-    private Integer cantidad;
+    @ManyToOne
+    @JoinColumn(name = "proveedor_id", nullable = false)
+    private Proveedor proveedor;
 
     @Column(nullable = false)
-    private String tipoMovimiento; // Ejemplo: "Entrada" o "Salida"
+    private Integer cantidadSolicitada;
 
     @Column(nullable = false)
-    private Date fechaMovimiento;
+    private String estado; // PENDIENTE | RECIBIDA | CANCELADA
+
+    @Column(nullable = false)
+    private Date fechaGeneracion;
 
     // Getters y Setters
     public Long getId() {
@@ -51,27 +55,35 @@ public class Inventario {
         this.sucursal = sucursal;
     }
 
-    public Integer getCantidad() {
-        return cantidad;
+    public Proveedor getProveedor() {
+        return proveedor;
     }
 
-    public void setCantidad(Integer cantidad) {
-        this.cantidad = cantidad;
+    public void setProveedor(Proveedor proveedor) {
+        this.proveedor = proveedor;
     }
 
-    public String getTipoMovimiento() {
-        return tipoMovimiento;
+    public Integer getCantidadSolicitada() {
+        return cantidadSolicitada;
     }
 
-    public void setTipoMovimiento(String tipoMovimiento) {
-        this.tipoMovimiento = tipoMovimiento;
+    public void setCantidadSolicitada(Integer cantidadSolicitada) {
+        this.cantidadSolicitada = cantidadSolicitada;
     }
 
-    public Date getFechaMovimiento() {
-        return fechaMovimiento;
+    public String getEstado() {
+        return estado;
     }
 
-    public void setFechaMovimiento(Date fechaMovimiento) {
-        this.fechaMovimiento = fechaMovimiento;
+    public void setEstado(String estado) {
+        this.estado = estado;
+    }
+
+    public Date getFechaGeneracion() {
+        return fechaGeneracion;
+    }
+
+    public void setFechaGeneracion(Date fechaGeneracion) {
+        this.fechaGeneracion = fechaGeneracion;
     }
 }
