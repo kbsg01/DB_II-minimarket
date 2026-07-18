@@ -7,6 +7,7 @@ import com.minimarket.entity.Producto;
 import com.minimarket.exception.DatosIncompletosException;
 import com.minimarket.exception.StockInsuficienteException;
 import com.minimarket.repository.PedidoRepository;
+import com.minimarket.repository.ProductoRepository;
 import com.minimarket.service.InventarioService;
 import com.minimarket.service.PedidoService;
 import com.minimarket.service.PromocionService;
@@ -34,6 +35,9 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Autowired
     private VentaService ventaService;
+
+    @Autowired
+    private ProductoRepository productoRepository;
 
     @Override
     public List<Pedido> findAll() {
@@ -65,6 +69,23 @@ public class PedidoServiceImpl implements PedidoService {
 
         Date ahora = new Date();
         Long sucursalId = pedido.getSucursal().getId();
+
+        // Recargar cada Producto por completo: el body JSON solo trae {"id": X} (mismo
+        // patrón de referencia mínima que usa el resto de la API), y tanto
+        // PromocionService.calcularPrecioConPromocion (precio) como la reposición
+        // automática de OrdenDeCompra (stockMinimo/proveedor, vía InventarioService) leen
+        // campos reales del producto, no solo su id. Sin este reload, POST /api/pedidos
+        // devolvía HTTP 500 (NullPointerException en Producto.getPrecio()) ante cualquier
+        // cliente real — hallazgo de convergencia detectado al ejercitar el endpoint en
+        // vivo, no solo por lectura de código.
+        for (DetallePedido detalle : pedido.getDetalles()) {
+            if (detalle.getProducto() == null || detalle.getProducto().getId() == null) {
+                throw new DatosIncompletosException("Cada detalle del pedido debe indicar un producto.");
+            }
+            Producto productoCompleto = productoRepository.findById(detalle.getProducto().getId())
+                    .orElseThrow(() -> new DatosIncompletosException("El producto del detalle no existe."));
+            detalle.setProducto(productoCompleto);
+        }
 
         // Revalidar disponibilidad de cada detalle al momento de confirmar (FR-010).
         for (DetallePedido detalle : pedido.getDetalles()) {

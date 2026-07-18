@@ -5,6 +5,7 @@ import com.minimarket.entity.Producto;
 import com.minimarket.entity.Sucursal;
 import com.minimarket.exception.DatosIncompletosException;
 import com.minimarket.repository.InventarioRepository;
+import com.minimarket.repository.ProductoRepository;
 import com.minimarket.service.OrdenDeCompraService;
 import com.minimarket.service.impl.InventarioServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +31,9 @@ public class InventarioServiceTest {
 
     @Mock
     private OrdenDeCompraService ordenDeCompraService;
+
+    @Mock
+    private ProductoRepository productoRepository;
 
     @InjectMocks
     private InventarioServiceImpl inventarioService;
@@ -73,6 +77,7 @@ public class InventarioServiceTest {
         inventario.setSucursal(sucursal);
         when(inventarioRepository.save(any(Inventario.class))).thenReturn(inventario);
         when(inventarioRepository.findByProductoIdAndSucursalId(1L, 1L)).thenReturn(List.of(inventario));
+        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
 
         Inventario resultado = inventarioService.registrarMovimiento(inventario);
 

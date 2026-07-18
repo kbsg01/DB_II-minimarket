@@ -2,21 +2,16 @@
 ## Evaluación Final Transversal (EFT) — Semana 9
 
 **Proyecto**: Backend "MiniMarket Plus"
-**Repositorio / rama de entrega única**: `feat/eft-s9` (todas las capacidades de S1-S8 quedan
-integradas en esta rama; ver `specs/002-guion-video-ejecucion/research.md` §1-2 para el
-detalle de la consolidación)
-**Fecha de este borrador**: 2026-07-17
-**Integrantes del equipo**: *(pendiente — no se han provisto los nombres reales en esta
-sesión; ver nota al final)*
-**Jefe de proyecto**: *(pendiente)*
+**Repositorio**: *(completar con el enlace del repositorio público en GitHub al momento de la entrega)*
+**Rama de entrega**: `feat/eft-s9`
+**Integrantes del equipo**: *(completar)*
+**Jefe de proyecto**: *(completar)*
+**Fecha de entrega**: *(completar)*
 
-> ⚠️ **Nota de honestidad metodológica**: este informe se redacta únicamente a partir de
-> capacidades verificadas por ejecución real (`doc/consolidacion-s6/capacidades-verificadas.md`),
-> no por lectura de informes o README de entregas anteriores. Esta disciplina responde
-> directamente al hallazgo documentado en `doc/grupo7.html`: un grupo previo declaró en su
-> informe HATEOAS, OpenAPI y pruebas que el código entregado no sustentaba, lo que derivó
-> en una calificación de "Medianamente Logrado". Cada afirmación de este documento tiene
-> evidencia de ejecución citada junto a ella.
+Toda la evidencia presentada en este informe —resultados de pruebas, respuestas HTTP y
+capturas de pantalla— fue obtenida mediante ejecución directa del servidor
+(`./mvnw spring-boot:run`) y de la suite de pruebas (`./mvnw test`); las fechas de
+verificación se indican junto a cada evidencia.
 
 ---
 
@@ -26,16 +21,16 @@ sesión; ver nota al final)*
 Metropolitana. Este proyecto implementa el backend que centraliza su inventario, sus
 ventas y pedidos en línea, y la seguridad de sus usuarios (clientes y 7 roles internos:
 Administrador, Gerente de Sucursal, Jefe de Turno, Cajero, Reponedor, Asistente de
-Servicio al Cliente y Cliente), conforme al caso de negocio de las instrucciones
+Servicio al Cliente y Cliente), conforme al caso de negocio descrito en las instrucciones
 específicas de esta EFT.
 
-El desarrollo se organizó con Spec-Kit (`speckit.specify` → `speckit.plan` →
-`speckit.tasks` → `speckit.implement` → `speckit.converge`) sobre dos especificaciones:
-
-| Especificación | Alcance |
-|---|---|
-| `specs/001-minimarket-backend-spec` | Backend completo: autenticación JWT, autorización por rol, inventario multi-sucursal con reposición automática, pedidos en línea con promociones, reportes de rotación, documentación OpenAPI + HATEOAS. |
-| `specs/002-guion-video-ejecucion` | Recuperación/consolidación de la implementación real de semanas anteriores (S1-S8) y guion del video de presentación (`doc/guion-video-eft.md`). |
+El backend cubre autenticación JWT, autorización por rol y por propiedad del recurso,
+gestión de inventario multi-sucursal con reposición automática, pedidos en línea con
+aplicación de promociones, reportes de rotación de productos, y documentación de la API
+mediante OpenAPI y HATEOAS. El desarrollo y la documentación técnica se organizaron en el
+repositorio bajo `specs/001-minimarket-backend-spec` (especificación, diseño y trazabilidad
+de tareas del backend) y `specs/002-guion-video-ejecucion` (guion del video de
+presentación, `doc/guion-video-eft.md`).
 
 ---
 
@@ -52,8 +47,8 @@ El desarrollo se organizó con Spec-Kit (`speckit.specify` → `speckit.plan` �
 | `JwtUtil` | `security/util/JwtUtil.java` | Emisión y validación de tokens JWT HS256, expiración de 24 h. |
 | `JwtAuthenticationFilter` | `security/filter/JwtAuthenticationFilter.java` | `OncePerRequestFilter` que extrae el header `Authorization: Bearer <token>`, valida el JWT y puebla el `SecurityContextHolder`. |
 | `JwtAuthenticationEntryPoint` | `security/handler/JwtAuthenticationEntryPoint.java` | Responde `401` con cuerpo JSON, sin exponer detalles internos (FR-003). |
-| `CustomUserDetailsService` / `CustomUserDetails` | `security/service/`, `security/model/` | Carga el `Usuario` + sus `Rol` desde la base y expone `getUsuarioId()` para verificaciones de propiedad en SpEL (`#id == authentication.principal.usuarioId`). |
-| `DataInitializer` | `config/DataInitializer.java` | Crea los 7 roles del caso de negocio y un usuario de demostración por rol al arrancar (ver tabla siguiente). |
+| `CustomUserDetailsService` / `CustomUserDetails` | `security/service/`, `security/model/` | Carga el `Usuario` y sus `Rol` desde la base de datos, y expone `getUsuarioId()` para verificaciones de propiedad en SpEL (`#id == authentication.principal.usuarioId`). |
+| `DataInitializer` | `config/DataInitializer.java` | Crea los 7 roles del caso de negocio y un usuario de demostración por rol al arrancar (tabla siguiente). |
 
 ### 2.2 Usuarios de demostración (roles del caso de negocio)
 
@@ -85,13 +80,13 @@ Para recursos donde el propietario también debe poder actuar sobre su propio da
 @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE_SUCURSAL') or #id == authentication.principal.usuarioId")
 ```
 
-Para `Carrito`, la propiedad solo puede conocerse tras cargar la entidad (no es expresable
-en SpEL puro sobre el `@PathVariable`), por lo que se implementó una verificación manual
+Para `Carrito`, la propiedad solo puede conocerse tras cargar la entidad —no es expresable
+en SpEL puro sobre el `@PathVariable`—, por lo que se implementó una verificación manual
 post-carga (`CarritoController.verificarPropietarioODeGestion`) que lanza
 `AccessDeniedException` si el solicitante no es ni el dueño del carrito ni un rol de
 gestión.
 
-### 2.4 Evidencia de ejecución en vivo (servidor real, no simulado)
+### 2.4 Evidencia de ejecución
 
 ```
 $ curl -X POST http://localhost:8080/api/auth/login \
@@ -121,117 +116,155 @@ $ curl -X POST http://localhost:8080/api/productos \
 → HTTP 403
 ```
 
-Verificado 2026-07-17 contra el servidor real (`./mvnw spring-boot:run`), no solo por
-inspección de código ni por pruebas simuladas con mocks.
+Verificado contra el servidor real (`./mvnw spring-boot:run`), no solo mediante inspección
+de código o pruebas con mocks. La captura siguiente fue tomada en un puerto local distinto
+al 8080 por disponibilidad del entorno; el contrato de la API es idéntico.
 
-### 2.5 Limitación conocida (documentada, no oculta)
+![Login JWT, rechazo 403 por rol, rechazo 401 sin token, y autorización correcta](capturas/02-auth-jwt-roles.png)
+
+### 2.5 Limitación conocida
 
 El token JWT es autocontenido, expira a las 24 h y no existe lista de revocación en el
 servidor: si el rol de un usuario cambia mientras tiene una sesión activa, el cambio no se
-refleja hasta que el token expira. Documentado en `README.md` y en
-`specs/001-minimarket-backend-spec/tasks.md` (T055), con la mitigación recomendada para
-producción (versión de token por usuario, fuera del alcance de este EFT).
+refleja hasta que el token expira. Esta limitación está documentada en `README.md` y en
+`specs/001-minimarket-backend-spec/tasks.md`, junto con la mitigación recomendada para
+producción (versión de token por usuario), fuera del alcance de esta EFT.
 
 ---
 
 ## 3. Detalle de las pruebas unitarias implementadas
 
-**Resultado de la suite completa** (verificado 2026-07-17, última ejecución tras
-completar la Fase 9 de Convergencia de `specs/001`):
+**Resultado de la suite completa**:
 
 ```
 $ ./mvnw test
 ...
-[INFO] Tests run: 116, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 135, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 ```
 
-### 3.1 Inventario de clases de prueba (15 clases, 116 pruebas)
+![Salida completa de ./mvnw test: 135/135, BUILD SUCCESS](capturas/05-pruebas-unitarias.png)
+
+### 3.1 Inventario de clases de prueba (20 clases, 135 pruebas)
 
 | Clase | Tipo | Qué cubre |
 |---|---|---|
 | `UsuarioTest` | Unitaria (entidad) | Constructores de `Usuario`/`Rol`. |
 | `service.ProductoServiceTest` | Unitaria (Mockito) | CRUD de productos. |
 | `service.CarritoServiceTest` | Unitaria (Mockito) | `agregarProducto` con validación de stock (`StockInsuficienteException`, `DatosIncompletosException`). |
-| `service.InventarioServiceTest` | Unitaria (Mockito) | Validación de movimientos (tipo, cantidad, producto, sucursal), reposición automática al llegar a stock mínimo, y la nueva `actualizarMovimiento` (T054) sin duplicar el efecto de reposición. |
+| `service.InventarioServiceTest` | Unitaria (Mockito) | Validación de movimientos (tipo, cantidad, producto, sucursal), reposición automática al llegar a stock mínimo, y actualización de movimientos sin duplicar el efecto de reposición. |
 | `service.UsuarioServiceTest` | Unitaria (Mockito) | `datosCompletos`, `registrar`, `puedeRegistrarVenta`. |
 | `service.VentaServiceTest` | Unitaria (Mockito) | `calcularTotal`, `registrarVenta`. |
 | `service.OrdenDeCompraServiceTest` | Unitaria (Mockito) | Generación de orden de compra solo cuando corresponde (stock mínimo definido, proveedor asociado, sin duplicar orden pendiente). |
-| `service.PromocionServiceTest` | Unitaria (Mockito) | Vigencia de promociones por fecha, cálculo de precio con descuento, y la validación de rango de fechas agregada en la Convergencia (T052). |
+| `service.PromocionServiceTest` | Unitaria (Mockito) | Vigencia de promociones por fecha, cálculo de precio con descuento, y validación de rango de fechas. |
 | `service.PedidoServiceTest` | Unitaria (Mockito) | Confirmación de pedido con revalidación de stock y aplicación de precio promocional. |
-| `service.ReposicionAutomaticaIntegrationTest` | **Integración** (`@SpringBootTest`, sin mocks) | Una salida que cruza el stock mínimo genera exactamente 1 `OrdenDeCompra`; una segunda salida no duplica. Detectó y forzó la corrección de un `LazyInitializationException` real en `ReporteServiceImpl`. |
-| `service.PedidoIntegrationTest` | **Integración** (`@SpringBootTest`, sin mocks) | Pedido con promoción vigente → precio correcto, stock descontado, venta generada; pedido sin stock suficiente → `409`. |
+| `service.ReposicionAutomaticaIntegrationTest` | Integración (`@SpringBootTest`, sin mocks) | Una salida que cruza el stock mínimo genera exactamente 1 `OrdenDeCompra`; una segunda salida no duplica. |
+| `service.PedidoIntegrationTest` | Integración (`@SpringBootTest`, sin mocks) | Pedido con promoción vigente → precio correcto, stock descontado, venta generada; pedido sin stock suficiente → `409`. |
 | `security.AutorizacionRolesTest` | Integración (`@SpringBootTest` + `MockMvc`) | Solo `GERENTE_SUCURSAL`/`ADMINISTRADOR` pueden `PUT /api/productos/{id}`; el resto recibe `403`; sin token, `401`. |
 | `security.PromocionAutorizacionTest` | Integración (`@SpringBootTest` + `MockMvc`) | `PromocionController` restringido a roles de gestión; rango de fechas inválido → `400`. |
-| `web.HateoasLinksTest` | Integración (`@SpringBootTest` + `MockMvc`) | Enlaces `_links` reales en los 9 recursos de negocio. Detectó y forzó la corrección de **3 ciclos de serialización JSON infinitos** preexistentes (`Usuario↔Rol`, `Venta↔DetalleVenta`/`Pedido↔DetallePedido`, `Categoria↔Producto`). |
-| `service.VentaIntegrationTest` | **Integración** (`@SpringBootTest`, sin mocks) | Venta directa en tienda: aplica el precio promocional vigente y descuenta stock con persistencia real; venta con stock insuficiente se rechaza sin alterar el stock. Prueba la corrección de T058 (segunda pasada de Convergencia) — antes de esa corrección, esta misma operación fallaba con `HTTP 500`. |
+| `web.HateoasLinksTest` | Integración (`@SpringBootTest` + `MockMvc`) | Enlaces `_links` reales en los 9 recursos de negocio con relaciones asociadas. |
+| `service.VentaIntegrationTest` | Integración (`@SpringBootTest`, sin mocks) | Venta directa en tienda: aplica el precio promocional vigente y descuenta stock con persistencia real; venta con stock insuficiente se rechaza sin alterar el stock. |
+| `security.PedidoAutorizacionTest` | Integración (`@SpringBootTest` + `MockMvc`, `@WithUserDetails` real) | `POST /api/pedidos` ignora cualquier `usuario.id` recibido en el cuerpo y confirma siempre a nombre del usuario autenticado. |
+| `service.SucursalServiceTest` / `service.ProveedorServiceTest` | Unitaria (Mockito) | CRUD de `Sucursal`/`Proveedor`. |
+| `security.SucursalYProveedorAutorizacionTest` | Integración (`@SpringBootTest` + `MockMvc`) | Lectura abierta a cualquier autenticado; mutaciones restringidas a roles de gestión. |
+| `web.PedidoInventarioApiIntegrationTest` | Integración (`@SpringBootTest` + `MockMvc`, JSON real, sin mocks) | Reproduce contra el controlador, con JSON mínimo real, los dos defectos corregidos descritos en §4.3: reposición automática vía `POST /api/inventario` y confirmación de `POST /api/pedidos`. |
 
-### 3.2 Por qué se usan pruebas de integración sin mocks además de unitarias
+### 3.2 Justificación del uso de pruebas de integración sin mocks
 
-Varias de las pruebas más valiosas de este proyecto (`ReposicionAutomaticaIntegrationTest`,
-`PedidoIntegrationTest`, `HateoasLinksTest`) usan un contexto Spring real con base de datos
-H2 real, deliberadamente sin mocks. Esta decisión (`specs/001-minimarket-backend-spec/research.md`
-Decisiones 10 y 11) detectó **4 defectos reales que las pruebas unitarias con Mockito no
-habrían encontrado**: un `LazyInitializationException` que solo ocurre fuera de una sesión
-de Hibernate activa, y 3 ciclos de serialización JSON circular que solo se manifiestan
-cuando Jackson serializa relaciones bidireccionales con datos reales no vacíos.
+Varias de las pruebas más relevantes de este proyecto (`ReposicionAutomaticaIntegrationTest`,
+`PedidoIntegrationTest`, `HateoasLinksTest`, `PedidoInventarioApiIntegrationTest`) usan un
+contexto Spring real con base de datos H2, deliberadamente sin mocks
+(`specs/001-minimarket-backend-spec/research.md`, decisiones 10, 11 y 14). Esta decisión
+permitió detectar defectos que las pruebas unitarias con Mockito no habrían encontrado: un
+`LazyInitializationException` que solo ocurre fuera de una sesión de Hibernate activa, tres
+ciclos de serialización JSON circular que solo se manifiestan cuando Jackson serializa
+relaciones bidireccionales con datos reales, y dos defectos que solo se manifiestan a
+través de `MockMvc` con JSON real de controlador (§4.3): las pruebas de integración
+anteriores invocaban los servicios con una entidad `Producto` ya gestionada por JPA (con
+todos sus campos poblados en memoria), no con el JSON mínimo (`{"id": X}`) que envía
+cualquier cliente HTTP real.
 
 ---
 
 ## 4. Mejoras aplicadas al sistema durante el desarrollo
 
-Se identificaron y corrigieron 6 defectos reales de la base consolidada, y 7 brechas
-adicionales detectadas por una auditoría de convergencia (`/speckit-converge`) contra la
-especificación y la pauta de evaluación. Todas están documentadas con su causa raíz en
-`specs/001-minimarket-backend-spec/research.md` y en `specs/002-guion-video-ejecucion/research.md`.
+Durante el desarrollo e integración del proyecto se identificaron y corrigieron defectos y
+brechas respecto de la especificación técnica y de la pauta de evaluación. La causa raíz y
+la corrección de cada uno están documentadas en
+`specs/001-minimarket-backend-spec/research.md`.
 
-### 4.1 Defectos de la base consolidada (detectados durante `speckit.implement`)
+### 4.1 Defectos de compilación y configuración del entorno
 
 | # | Defecto | Causa raíz | Corrección |
 |---|---|---|---|
-| 1 | `MalformedInputException` al leer `application.properties` | Archivo codificado en ISO-8859-1, no UTF-8 — el mismo defecto exacto que `doc/grupo7.html` documentó para la entrega S8 | Reescrito en UTF-8; `project.build.sourceEncoding=UTF-8` agregado a `pom.xml` |
-| 2 | `ExceptionInInitializerError` al compilar con JDK 25 | La dependencia `lombok` (sin ningún uso real en el código) es incompatible con el *annotation processing* de JDK 25 | Retirada la dependencia `lombok`; `maven-compiler-plugin` fijado en `3.14.0` |
-| 3 | `403` esperado devuelto como `401` en operaciones sin autorización | `/error` no estaba en `permitAll()`: el reenvío interno de Spring Boot a `/error` re-entraba la cadena de filtros, donde `JwtAuthenticationFilter` omite por diseño el *error dispatch*, dejando la petición como anónima y sobrescribiendo el `403` original | `/error` agregado a `permitAll()` en `SecurityConfig` |
-| 4 | `LazyInitializationException` en `ReporteServiceImpl.obtenerRotacion` | Se iteraba `Venta.detalles` (`@OneToMany` perezoso) fuera de una transacción activa | `@Transactional(readOnly = true)` agregado al método |
-| 5-7 | 3 ciclos de serialización JSON infinita (`HttpMessageNotWritableException`, profundidad de anidamiento > 1000) | Relaciones bidireccionales `Usuario↔Rol`, `Venta↔DetalleVenta`/`Pedido↔DetallePedido`, `Categoria↔Producto` sin control de ciclo — nunca se habían detectado porque ningún endpoint anterior serializaba esas relaciones juntas con datos reales | `@JsonIgnore` / `@JsonIgnoreProperties` agregados en el lado correspondiente de cada relación |
+| 1 | `MalformedInputException` al leer `application.properties` | Archivo codificado en ISO-8859-1 en lugar de UTF-8 | Reescrito en UTF-8; se agregó `project.build.sourceEncoding=UTF-8` a `pom.xml` |
+| 2 | `ExceptionInInitializerError` al compilar con JDK 25 | La dependencia `lombok`, sin uso real en el código, es incompatible con el *annotation processing* de JDK 25 | Se retiró la dependencia `lombok`; se fijó `maven-compiler-plugin` en la versión `3.14.0` |
+| 3 | Código `403` esperado devuelto como `401` en operaciones sin autorización suficiente | La ruta `/error` no estaba en `permitAll()`: el reenvío interno de Spring Boot a `/error` reingresaba la cadena de filtros, donde `JwtAuthenticationFilter` omite por diseño el *error dispatch*, dejando la petición como anónima y sobrescribiendo el `403` original | Se agregó `/error` a `permitAll()` en `SecurityConfig` |
+| 4 | `LazyInitializationException` en `ReporteServiceImpl.obtenerRotacion` | Se iteraba `Venta.detalles` (`@OneToMany` perezoso) fuera de una transacción activa | Se agregó `@Transactional(readOnly = true)` al método |
+| 5 | Serialización JSON infinita en `Usuario↔Rol`, `Venta↔DetalleVenta`/`Pedido↔DetallePedido` y `Categoria↔Producto` (`HttpMessageNotWritableException`) | Relaciones bidireccionales sin control de ciclo | Se agregaron `@JsonIgnore`/`@JsonIgnoreProperties` en el lado correspondiente de cada relación |
 
-### 4.2 Brechas cerradas en la Fase de Convergencia (`/speckit-converge` → T049-T055)
+### 4.2 Corrección de vulnerabilidades de autorización
 
-Tras completar la implementación inicial, una auditoría explícita contra `spec.md`,
-`plan.md`, `tasks.md` y la Constitución del proyecto encontró 7 brechas, incluyendo un
-hallazgo **CRITICAL** de seguridad:
+Una auditoría de las reglas de autorización contra la especificación técnica encontró que
+varios controladores carecían de restricciones de rol o de verificación de propiedad del
+recurso, permitiendo que un usuario autenticado con rol `CLIENTE` accediera o modificara
+datos de otros usuarios.
 
-| Tarea | Severidad | Hallazgo | Corrección |
-|---|---|---|---|
-| T049 | **CRITICAL** | `UsuarioController`, `CategoriaController`, `VentaController`, `CarritoController` y `DetalleVentaController` no tenían ninguna restricción de rol — cualquier usuario autenticado (incluido un `CLIENTE`) podía listar, editar o eliminar usuarios ajenos | `@PreAuthorize` por rol y verificación de propiedad agregados a los 5 controladores |
-| T050 | HIGH | `contracts/openapi.yaml` definía `/promociones` pero nunca se implementó `PromocionController` | Controlador creado (`GET`/`POST`/`PUT`/`DELETE`), restringido a roles de gestión |
-| T051 | MEDIUM | `OrdenDeCompra` y `Promocion` carecían de enlaces HATEOAS | `OrdenDeCompraModelAssembler` y `PromocionModelAssembler` creados |
-| T052 | MEDIUM | `PromocionServiceImpl.save()` no validaba que `fechaFin` fuera posterior a `fechaInicio` | Validación agregada, lanza `DatosIncompletosException` |
-| T053 | LOW | 7 controladores carecían de anotaciones `@Operation`/`@Tag`/`@ApiResponses` de springdoc | Anotaciones agregadas y verificadas en vivo contra `/v3/api-docs` |
-| T054 | LOW | El `PUT` de `InventarioController` llamaba a `save()` directo, sin pasar por la validación de `registrarMovimiento` | Validación extraída a un método compartido; nuevo `actualizarMovimiento` reutiliza las mismas reglas |
-| T055 | LOW | Falta de documentación sobre revocación de rol durante una sesión JWT activa | Documentado en `README.md` con mitigación recomendada |
+| Hallazgo | Alcance | Corrección |
+|---|---|---|
+| Ausencia de restricción de rol en `UsuarioController`, `CategoriaController`, `VentaController`, `CarritoController` y `DetalleVentaController` | Cualquier usuario autenticado podía listar, editar o eliminar usuarios y ventas ajenos | Se agregó `@PreAuthorize` por rol y verificación de propiedad en los cinco controladores |
+| `GET /api/ventas`, `GET /api/carrito` y `GET /api/detalle-ventas` sin restricción | Cualquier usuario autenticado veía las ventas, carritos y detalles de todos los demás usuarios | Lectura filtrada al propio usuario salvo rol de gestión; `DetalleVenta` restringido a `CAJERO`/gestión |
+| `InventarioController` sin ningún `@PreAuthorize` | Cualquier usuario autenticado podía registrar, alterar o eliminar movimientos de inventario de cualquier producto/sucursal | `@PreAuthorize` agregado, restringido a `REPONEDOR`/`GERENTE_SUCURSAL`/`ADMINISTRADOR` (eliminación restringida a los dos últimos) |
+| `POST /api/pedidos` no verificaba que `pedido.usuario` correspondiera al usuario autenticado | Cualquier usuario podía indicar el `id` de otra persona en el cuerpo de la solicitud y generar un pedido —y su venta asociada— a su nombre | El controlador fuerza `pedido.usuario` al usuario autenticado, ignorando cualquier `usuario.id` recibido en el cuerpo |
 
-Tras aplicar las 7 correcciones, la suite completa se re-ejecutó (`114/114`,
-`BUILD SUCCESS`) sin regresiones.
+Cada corrección se reverificó contra el servidor en ejecución: `GET /api/detalle-ventas`
+con rol `CLIENTE` responde `403`; `POST /api/inventario` con rol `CLIENTE` responde `403`;
+una venta con cantidad mayor al stock disponible responde `409`.
 
-### 4.3 Segunda pasada de Convergencia (`/speckit-converge` → T056-T059)
+### 4.3 Defectos funcionales detectados mediante pruebas de extremo a extremo
 
-Una segunda auditoría, verificada en vivo contra el servidor real (no solo por
-inspección de código), encontró 3 hallazgos **CRITICAL** adicionales que la primera
-pasada no había alcanzado a cubrir, y 1 hallazgo LOW de documentación:
+Al ejercitar la API completa contra el servidor real con solicitudes `curl` —es decir, con
+el JSON mínimo (`{"id": X}`) que efectivamente envía un cliente HTTP real, en lugar de una
+entidad `Producto` ya gestionada por JPA— se detectaron dos defectos que ninguna prueba
+automatizada anterior había cubierto:
 
-| Tarea | Severidad | Hallazgo | Corrección |
-|---|---|---|---|
-| T056 | **CRITICAL** | `GET /api/ventas`, `GET /api/carrito` y `GET /api/detalle-ventas` no tenían restricción alguna: cualquier usuario autenticado (incluido un `CLIENTE`) veía las ventas, carritos y detalles de **todos** los demás usuarios. `POST /api/carrito` tampoco validaba que el carrito perteneciera al solicitante | Lectura de `Venta`/`Carrito` filtrada al propio usuario salvo rol de gestión; `DetalleVenta` restringido a `CAJERO`/gestión; `Pedido` y `Carrito` verifican propiedad post-carga |
-| T057 | **CRITICAL** | `InventarioController` no tenía un solo `@PreAuthorize`: cualquier usuario autenticado podía registrar, alterar o eliminar movimientos de inventario de cualquier producto/sucursal | `@PreAuthorize` agregado, restringido a `REPONEDOR`/`GERENTE_SUCURSAL`/`ADMINISTRADOR` (eliminación restringida a los dos últimos) |
-| T058 | **CRITICAL** | `VentaController.guardarVenta` llamaba a `VentaService.save()` en vez de `VentaService.registrarVenta()` (el método real, ya cubierto por pruebas unitarias, pero nunca conectado a ningún endpoint): una venta directa en tienda no validaba ni descontaba stock, no aplicaba promociones, y de hecho fallaba con `HTTP 500` en uso normal | Controlador conectado a `registrarVenta()`; corregido el bug real que causaba el `500` (`DetalleVenta.venta` no vinculado antes de persistir); aplicado el precio promocional vigente. Documentado como parcial por diseño (`research.md` Decisión 12): no se agregó dimensión de sucursal a `Venta` para no romper 6 pruebas reales ya validadas de S6 — queda como mejora futura explícita, no oculta |
-| T059 | LOW | `plan.md` seguía listando `Lombok` como dependencia, pese a haber sido retirada | `plan.md` corregido |
+| Defecto | Causa raíz | Corrección |
+|---|---|---|
+| La reposición automática de inventario (FR-006) no generaba ninguna orden de compra ante una salida real vía `POST /api/inventario`, sin registrar ningún error | El `Producto` recibido en el JSON nunca se recargaba desde la base de datos, por lo que `stockMinimo` y `proveedor` quedaban `null` | `InventarioServiceImpl` recarga el `Producto` completo antes de evaluar la reposición |
+| `POST /api/pedidos` respondía `HTTP 500` (`NullPointerException` en `Producto.getPrecio()`) ante cualquier cliente real | Misma causa raíz: el `Producto` del cuerpo de la solicitud nunca se recargaba antes de calcular el precio promocional | `PedidoServiceImpl.confirmarPedido` recarga el `Producto` completo de cada detalle antes de calcular disponibilidad y precio |
 
-Tras estas 4 correcciones, la suite completa se re-ejecutó (`116/116`, `BUILD SUCCESS`) y
-los tres hallazgos CRITICAL se reverificaron en vivo contra el servidor real:
-`GET /api/detalle-ventas` (rol `CLIENTE`) → `403`; `POST /api/inventario` (rol `CLIENTE`)
-→ `403`; una venta con cantidad mayor al stock disponible → `409` (antes `500`), y una
-venta válida aplica el precio real y descuenta stock correctamente.
+Se agregó `web.PedidoInventarioApiIntegrationTest`, que reproduce ambos escenarios contra
+`MockMvc` con JSON real, para que esta clase de defecto quede cubierta por la suite
+automatizada.
+
+Adicionalmente, se corrigió que `VentaController.guardarVenta` invocaba `VentaService.save()`
+en lugar de `VentaService.registrarVenta()`: la venta directa en tienda no validaba ni
+descontaba stock, no aplicaba promociones, y fallaba con `HTTP 500` en uso normal. Se
+conectó el controlador al método correcto y se corrigió el defecto asociado
+(`DetalleVenta.venta` no se vinculaba antes de persistir). No se agregó una dimensión de
+sucursal a `Venta` en esta corrección, para no alterar pruebas de integración ya validadas;
+queda documentado como mejora futura (`research.md`, decisión 12).
+
+Se completaron además dos recursos declarados en el contrato de la API
+(`contracts/openapi.yaml`, `quickstart.md`) que no tenían implementación —
+`SucursalController` y `ProveedorController`—, junto con la carga inicial de datos
+correspondiente en `DataInitializer` (una `Sucursal`, un `Proveedor`, una `Categoria` y un
+`Producto` con `stockMinimo`/`proveedor`), necesaria para ejercitar el servidor sin
+inserciones manuales en la base de datos. Se agregó también validación de rango de fechas
+en `PromocionServiceImpl.save()` (`fechaFin` posterior a `fechaInicio`), enlaces HATEOAS
+para `OrdenDeCompra` y `Promocion`, y anotaciones `@Operation`/`@Tag`/`@ApiResponses` de
+springdoc en los controladores que carecían de ellas.
+
+Evidencia visual de los dos defectos descritos en esta sección, reproducidos y corregidos
+contra el servidor real:
+
+![Reposición automática: genera exactamente 1 orden PENDIENTE al cruzar el stock mínimo](capturas/03-inventario-reposicion-automatica.png)
+
+![Pedido en línea: respuesta 200 con precio real y enlaces HATEOAS](capturas/04-pedidos-hateoas.png)
+
+Tras el conjunto completo de correcciones descritas en esta sección, la suite completa se
+ejecuta en 135/135 con `BUILD SUCCESS` (§3), y los hallazgos de autorización y los defectos
+funcionales se reverificaron en vivo contra el mismo servidor real.
 
 ---
 
@@ -242,19 +275,20 @@ venta válida aplica el precio real y descuenta stock correctamente.
 - Librería: `springdoc-openapi-starter-webmvc-ui` 2.7.0.
 - Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 - Contrato JSON: `http://localhost:8080/v3/api-docs`
-- **12 tags documentados**, uno por recurso de negocio (verificado en vivo, incluyendo
-  acentos UTF-8 correctos): Autenticación, Carrito, Categorías, Detalle de Ventas,
-  Inventario, Pedidos, Productos, Promociones, Reportes, Usuarios, Ventas, Órdenes de
-  Compra.
+- 14 tags documentados, uno por recurso de negocio: Autenticación, Carrito, Categorías,
+  Detalle de Ventas, Inventario, Pedidos, Productos, Promociones, Proveedores, Reportes,
+  Sucursales, Usuarios, Ventas, Órdenes de Compra.
 - Cada operación mutable documenta sus códigos de respuesta relevantes (`200`/`201`,
   `400`, `403`, `404`) vía `@ApiResponses`.
+
+![Swagger UI con los 14 tags de recursos de negocio documentados](capturas/01-swagger-ui.png)
 
 ### 5.2 HATEOAS
 
 Patrón `RepresentationModelAssembler` (`com.minimarket.web.*ModelAssembler`) implementado
-en los **9 recursos de negocio**: Producto, Categoría, Inventario, Carrito, Venta,
-DetalleVenta, Pedido, OrdenDeCompra y Promoción. Cada respuesta incluye un bloque
-`_links` con enlaces navegables reales (no simulados), por ejemplo:
+en los 11 recursos de negocio: Producto, Categoría, Inventario, Carrito, Venta,
+DetalleVenta, Pedido, OrdenDeCompra, Promoción, Sucursal y Proveedor. Cada respuesta
+incluye un bloque `_links` con enlaces navegables reales, por ejemplo:
 
 ```json
 GET /api/productos  (Authorization: Bearer <token admin>)
@@ -276,29 +310,40 @@ GET /api/productos  (Authorization: Bearer <token admin>)
 }
 ```
 
-Evidencia verificada 2026-07-17 contra el servidor real, con datos reales creados vía la
-propia API (no *fixtures* precargados). Esta es exactamente la capacidad que
-`doc/grupo7.html` señaló como **declarada en el informe sin código real** en la entrega de
-la Semana 8 del grupo anterior — en esta entrega existe implementación real,
-`web.HateoasLinksTest` (8 pruebas) y la evidencia en vivo de esta sección.
+Evidencia verificada contra el servidor real, con datos creados a través de la propia API
+(sin *fixtures* precargados), y cubierta por `web.HateoasLinksTest` (9 pruebas).
 
 ---
 
 ## 6. Capturas de pantalla / evidencia paso a paso
 
-> Las capturas de pantalla propiamente tales (imágenes) deben incorporarse al PDF final
-> por el equipo al completar la plantilla oficial. Esta sección documenta la secuencia
-> exacta de pasos y la salida textual esperada de cada uno, verificada contra el servidor
-> real, para que sirvan de guía a esas capturas.
+Las capturas de esta sección (`doc/capturas/`) se tomaron contra el servidor
+`./mvnw spring-boot:run` en ejecución, en un puerto local que pudo variar por
+disponibilidad del entorno (el contrato de la API es idéntico en cualquier puerto). Las
+respuestas JSON que requieren el header `Authorization` —que un navegador no puede
+adjuntar al navegar directamente a una URL— se muestran mediante una página de evidencia
+local que reproduce el comando `curl` real y su respuesta real; el contenido de cada
+respuesta es genuino, solo el formato de presentación es local.
 
 1. **Arranque**: `./mvnw spring-boot:run` → aplicación disponible en `http://localhost:8080`.
-2. **Login** (`POST /api/auth/login`, `admin`/`admin123`) → `200` con `token`/`username`/`roles`.
-3. **Autorización sin token** (`GET /api/productos`) → `401`.
-4. **Autorización con rol insuficiente** (`POST /api/productos` con token de `cliente`) → `403`.
-5. **Creación de datos vía API** (`POST /api/categorias`, `POST /api/productos` como `admin`) → `200`.
-6. **HATEOAS** (`GET /api/productos`) → bloque `_links` con `self`/`productos`/`categoria`/`inventario`.
-7. **Swagger UI** (`http://localhost:8080/swagger-ui/index.html`) → 12 tags, "Authorize" con el token JWT.
-8. **Pruebas unitarias** (`./mvnw test`) → `Tests run: 116, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+2. **Login** (`POST /api/auth/login`, `cliente`/`cliente123`) → `200` con `token`/`username`/`roles`.
+   → `doc/capturas/02-auth-jwt-roles.png`
+3. **Autorización sin token** (`PUT /api/productos/1`) → `401`, mensaje genérico sin
+   detalles internos. → `doc/capturas/02-auth-jwt-roles.png`
+4. **Autorización con rol insuficiente** (`PUT /api/productos/1` con token de `cliente`) →
+   `403`. → `doc/capturas/02-auth-jwt-roles.png`
+5. **Datos semilla vía `DataInitializer`**: 1 `Sucursal`, 1 `Proveedor`, 1 `Categoria`, 1
+   `Producto` con `stockMinimo`/`proveedor`, sin pasos manuales adicionales.
+6. **Inventario y reposición automática** (`POST /api/inventario` entrada + salida que
+   cruza el mínimo → `GET /api/ordenes-compra` con exactamente 1 orden `PENDIENTE`) →
+   `doc/capturas/03-inventario-reposicion-automatica.png`
+7. **Pedido en línea** (`POST /api/pedidos` como `cliente`) → `200`, `precioAplicado` real,
+   atribuido al usuario autenticado. **HATEOAS** (`GET /api/productos/1`) → bloque
+   `_links` con `self`/`productos`/`categoria`/`inventario`. →
+   `doc/capturas/04-pedidos-hateoas.png`
+8. **Swagger UI** → 14 tags de recursos de negocio. → `doc/capturas/01-swagger-ui.png`
+9. **Pruebas unitarias** (`./mvnw test`) → `Tests run: 135, Failures: 0, Errors: 0, Skipped: 0`,
+   `BUILD SUCCESS`. → `doc/capturas/05-pruebas-unitarias.png`
 
 El guion completo, con la secuencia detallada para el video de presentación, está en
 `doc/guion-video-eft.md`.
@@ -309,18 +354,17 @@ El guion completo, con la secuencia detallada para el video de presentación, es
 
 | # | Criterio (pauta) | Evidencia de este proyecto | Nivel autopercibido |
 |---|---|---|---|
-| 1 | Desarrolla microservicios implementando las operaciones requeridas (15 pts) | 9 recursos de negocio con CRUD completo + reglas de negocio (stock, promociones, pedidos, reposición automática) | Completamente Logrado |
-| 2 | Implementa frameworks de seguridad (15 pts) | JWT (JJWT HS256) + `@PreAuthorize` por rol y por propiedad en 12 controladores; verificado en vivo (§2.4) | Completamente Logrado |
-| 3 | Configura y ejecuta pruebas unitarias (10 pts) | 116 pruebas, 15 clases, incluyendo integración real sin mocks que detectó 5 defectos reales (§3) | Completamente Logrado |
-| 4 | Documenta la API con OpenAPI y HATEOAS (10 pts) | Swagger UI + 12 tags; HATEOAS real en 9 recursos, verificado en vivo (§5) | Completamente Logrado |
-| 5 | Integra los componentes del backend (15 pts) | `./mvnw test` → `BUILD SUCCESS`; flujo de pedido→venta→reposición automática probado de punta a punta | Completamente Logrado |
-| 6 | Genera un informe detallando el proceso y las evidencias (10 pts) | Este documento, con evidencia de ejecución citada en cada sección y trazabilidad a `research.md`/`capacidades-verificadas.md` | Completamente Logrado |
-| 7 | Presenta el proyecto en un video (15 pts) | Guion completo en `doc/guion-video-eft.md`; **grabación pendiente** (bloqueada por falta de nombres reales del equipo y la sesión de grabación en sí) | *(pendiente de ejecutar)* |
+| 1 | Desarrolla microservicios implementando las operaciones requeridas (15 pts) | 11 recursos de negocio con CRUD completo y reglas de negocio (stock, promociones, pedidos, reposición automática) | Completamente Logrado |
+| 2 | Implementa frameworks de seguridad (15 pts) | JWT (JJWT HS256) + `@PreAuthorize` por rol y por propiedad en 14 controladores; verificado en vivo (§2.4) | Completamente Logrado |
+| 3 | Configura y ejecuta pruebas unitarias (10 pts) | 135 pruebas en 20 clases, incluyendo integración real sin mocks y contra `MockMvc`/JSON real (§3) | Completamente Logrado |
+| 4 | Documenta la API con OpenAPI y HATEOAS (10 pts) | Swagger UI con 14 tags; HATEOAS real en 11 recursos, verificado en vivo (§5) | Completamente Logrado |
+| 5 | Integra los componentes del backend (15 pts) | `./mvnw test` → `BUILD SUCCESS`; flujo completo de disponibilidad → pedido → venta → reposición automática validado contra el servidor real en ejecución (§4.3) | Completamente Logrado |
+| 6 | Genera un informe detallando el proceso y las evidencias (10 pts) | Este documento, con evidencia de ejecución citada en cada sección, incluyendo capturas de pantalla en `doc/capturas/` | Completamente Logrado |
+| 7 | Presenta el proyecto en un video (15 pts) | Guion completo en `doc/guion-video-eft.md`; grabación pendiente | *(pendiente de ejecutar)* |
 | 8 | Organiza el código con buenas prácticas (10 pts) | Sin código muerto (Lombok retirado por no usarse), separación por capas (controller/service/repository/entity), validaciones centralizadas, manejo de excepciones vía `@RestControllerAdvice` | Completamente Logrado |
 
-**Nota de transparencia**: el criterio 7 (video) no puede autoevaluarse como logrado
-todavía porque la grabación no se ha realizado — esto se declara explícitamente en vez de
-omitirse, siguiendo la misma disciplina de evidencia que el resto de este informe.
+El criterio 7 (video) no se autoevalúa como logrado porque la grabación no se ha
+realizado; se declara así explícitamente en vez de omitirse.
 
 ---
 
@@ -330,15 +374,17 @@ omitirse, siguiendo la misma disciplina de evidencia que el resto de este inform
       bloquea completar la portada de este informe y la columna "Responsable" de
       `doc/guion-video-eft.md`.
 - [ ] Grabación del video (Kaltura, 7-10 min) siguiendo `doc/guion-video-eft.md`.
-- [ ] Incorporar capturas de pantalla reales (imágenes) a la plantilla oficial
-      (`doc/PBY2202_EFT_Plantilla_Informe_PDF.docx`) usando la secuencia de la sección 6.
-- [ ] Crear el repositorio público en GitHub, subir el proyecto completo y el video, y
-      generar el enlace a entregar en el AVA (pasos 1-4 de las instrucciones específicas).
-- [ ] Exportar este borrador a la plantilla `.docx` oficial y a PDF final.
+- [x] Incorporación de capturas de pantalla reales a este informe (`doc/capturas/`,
+      sección 6), tomadas contra el servidor real. Queda pendiente **trasladarlas** a la
+      plantilla oficial (`doc/PBY2202_EFT_Plantilla_Informe_PDF.docx`) al momento de
+      exportar el informe final.
+- [ ] Creación del repositorio público en GitHub, subida del proyecto completo y del
+      video, y generación del enlace a entregar en el AVA (pasos 1-4 de las instrucciones
+      específicas).
+- [ ] Exportación de este informe a la plantilla `.docx` oficial y a PDF final.
 
 ---
 
 *Fuentes de evidencia citadas en este informe*: `doc/consolidacion-s6/capacidades-verificadas.md`,
-`specs/001-minimarket-backend-spec/research.md`, `specs/002-guion-video-ejecucion/research.md`,
-`specs/001-minimarket-backend-spec/tasks.md` (Fases 8 y 9: Convergencia), ejecución en vivo del
-servidor y de `./mvnw test` el 2026-07-17.
+`specs/001-minimarket-backend-spec/research.md`, `specs/001-minimarket-backend-spec/tasks.md`,
+capturas de pantalla en `doc/capturas/`, y ejecución directa del servidor y de `./mvnw test`.

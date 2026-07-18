@@ -4,6 +4,7 @@ import com.minimarket.entity.*;
 import com.minimarket.exception.DatosIncompletosException;
 import com.minimarket.exception.StockInsuficienteException;
 import com.minimarket.repository.PedidoRepository;
+import com.minimarket.repository.ProductoRepository;
 import com.minimarket.service.impl.PedidoServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,6 +41,9 @@ class PedidoServiceTest {
 
     @Mock
     private VentaService ventaService;
+
+    @Mock
+    private ProductoRepository productoRepository;
 
     @InjectMocks
     private PedidoServiceImpl pedidoService;
@@ -89,6 +94,7 @@ class PedidoServiceTest {
     @Test
     void confirmarPedido_stockSuficiente_confirmaDescuentaYRegistraVenta() {
         Pedido pedido = pedidoConDetalle(3);
+        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
         when(inventarioService.calcularStockVigente(1L, 1L)).thenReturn(10);
         when(promocionService.calcularPrecioConPromocion(eq(producto), any())).thenReturn(1000.0);
         when(pedidoRepository.save(any(Pedido.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -105,6 +111,7 @@ class PedidoServiceTest {
     @Test
     void confirmarPedido_stockInsuficiente_lanzaExcepcionYNoDescuenta() {
         Pedido pedido = pedidoConDetalle(5);
+        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
         when(inventarioService.calcularStockVigente(1L, 1L)).thenReturn(2);
 
         assertThrows(StockInsuficienteException.class, () -> pedidoService.confirmarPedido(pedido));
@@ -136,6 +143,7 @@ class PedidoServiceTest {
     @Test
     void confirmarPedido_aplicaPrecioPromocional() {
         Pedido pedido = pedidoConDetalle(2);
+        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
         when(inventarioService.calcularStockVigente(1L, 1L)).thenReturn(10);
         when(promocionService.calcularPrecioConPromocion(eq(producto), any())).thenReturn(800.0);
         ArgumentCaptor<Pedido> captor = ArgumentCaptor.forClass(Pedido.class);

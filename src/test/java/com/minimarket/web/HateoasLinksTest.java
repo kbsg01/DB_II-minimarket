@@ -63,6 +63,17 @@ class HateoasLinksTest {
 
     @Test
     @Transactional
+    void sucursalIndividualIncluyeLinksReales() throws Exception {
+        Sucursal sucursal = sucursalRepository.save(nuevaSucursal());
+
+        mockMvc.perform(get("/api/sucursales/" + sucursal.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._links.self.href").exists())
+                .andExpect(jsonPath("$._links.sucursales.href").exists());
+    }
+
+    @Test
+    @Transactional
     void categoriaIndividualIncluyeLinksReales() throws Exception {
         Categoria categoria = categoriaRepository.save(nuevaCategoria());
 

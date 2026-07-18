@@ -1,8 +1,10 @@
 package com.minimarket.service.impl;
 
 import com.minimarket.entity.Inventario;
+import com.minimarket.entity.Producto;
 import com.minimarket.exception.DatosIncompletosException;
 import com.minimarket.repository.InventarioRepository;
+import com.minimarket.repository.ProductoRepository;
 import com.minimarket.service.InventarioService;
 import com.minimarket.service.OrdenDeCompraService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,9 @@ public class InventarioServiceImpl implements InventarioService {
 
     @Autowired
     private OrdenDeCompraService ordenDeCompraService;
+
+    @Autowired
+    private ProductoRepository productoRepository;
 
     @Override
     public List<Inventario> findAll() {
@@ -56,8 +61,15 @@ public class InventarioServiceImpl implements InventarioService {
         if (SALIDA.equalsIgnoreCase(guardado.getTipoMovimiento())) {
             int stockVigente = calcularStockVigente(
                     guardado.getProducto().getId(), guardado.getSucursal().getId());
+            // Recargar el Producto por completo: el body JSON de POST /api/inventario solo
+            // trae {"id": X}, y OrdenDeCompraService.generarSiNecesario necesita
+            // stockMinimo/proveedor reales, no una referencia parcial — sin este reload la
+            // reposición automática (FR-006) fallaba en silencio (sin error, sin orden) en
+            // cualquier llamada real a la API, hallazgo detectado al ejercitar el endpoint
+            // en vivo, no solo por lectura de código.
+            Producto productoCompleto = productoRepository.findById(guardado.getProducto().getId()).orElse(null);
             ordenDeCompraService.generarSiNecesario(
-                    guardado.getProducto(), guardado.getSucursal(), stockVigente);
+                    productoCompleto, guardado.getSucursal(), stockVigente);
         }
 
         return guardado;
