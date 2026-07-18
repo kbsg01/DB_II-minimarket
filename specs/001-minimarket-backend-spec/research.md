@@ -225,3 +225,72 @@ especificación (spec.md) a un modelo de datos y contratos concretos.
   esquema y reescritura de pruebas existentes, fuera de lo que el hallazgo de convergencia
   pedía corregir; queda documentado aquí como mejora futura en vez de implementarse a
   medias o silenciarse).
+
+## 13. Precedencia entre promoción vigente y cambio manual de precio simultáneo (T061, tercera pasada de `/speckit-converge`)
+
+- **Decision**: El precio aplicado en una venta o pedido siempre se calcula "al vuelo",
+  dentro de la misma transacción de confirmación, tomando el `producto.getPrecio()`
+  vigente en ese instante y aplicándole el descuento de la `Promocion` vigente (si la hay)
+  sobre ese valor — nunca sobre un precio cacheado o leído con anterioridad. Esto es lo que
+  ya hacen `PromocionServiceImpl.calcularPrecioConPromocion` (invocado de forma idéntica
+  desde `VentaServiceImpl.registrarVenta` y `PedidoServiceImpl.confirmarPedido`), pero no
+  quedaba registrado como una decisión explícita, solo como comportamiento implícito del
+  código.
+- **Rationale**: Responde directamente al edge case de `spec.md` ("¿Qué ocurre si una
+  promoción vigente y un cambio manual de precio ocurren sobre el mismo producto al mismo
+  tiempo? Debe quedar definido cuál prevalece"). La regla es: **el precio manual vigente en
+  el momento de la confirmación siempre prevalece como base, y la promoción vigente en ese
+  mismo instante se aplica como descuento sobre ese precio base** — no existe un precio
+  "congelado" desde el momento en que el cliente consultó el catálogo o agregó el producto
+  al carrito. Esto es consistente con FR-010 (revalidación de stock al confirmar, no solo
+  al consultar) aplicando el mismo principio de "la verdad se relee al confirmar" también
+  al precio.
+- **Known limitation (no oculta)**: no existe bloqueo optimista ni pesimista sobre
+  `Producto.precio` durante la transacción de confirmación; si un gerente edita el precio
+  manualmente en el instante exacto entre la lectura y el `save()` de la venta/pedido,
+  puede aplicarse un precio ya obsoleto (condición de carrera de baja probabilidad e
+  impacto acotado a un solo producto/transacción). Se documenta como mejora de alcance
+  futuro (por ejemplo, `@Version` para bloqueo optimista en `Producto`), no como parte de
+  este hallazgo.
+- **Alternatives considered**: Cachear el precio en el momento de agregar al carrito o
+  consultar disponibilidad (rechazado: contradice explícitamente FR-010 y el edge case de
+  `spec.md`, que exigen revalidar al confirmar, no confiar en un valor previamente leído).
+
+## 14. Referencias parciales de `Producto` en el body JSON rompían la reposición automática y `POST /api/pedidos` (T063/T064, cuarta pasada de `/speckit-converge`)
+
+- **Decision**: `InventarioServiceImpl.registrarMovimiento` y `PedidoServiceImpl.confirmarPedido`
+  ahora recargan el `Producto` completo vía `ProductoRepository.findById(...)` antes de leer
+  cualquier campo distinto de su `id` (`stockMinimo`, `proveedor`, `precio`), en vez de
+  confiar en el objeto `Producto` tal como llega deserializado desde el body JSON del
+  cliente (`{"id": X}`, sin el resto de los campos poblados — el mismo patrón de referencia
+  mínima que usa el resto de la API para `Carrito`, `DetalleVenta`, etc.).
+- **Rationale**: Detectado ejercitando el servidor real (`./mvnw spring-boot:run` + `curl`),
+  no por lectura de código ni por las pruebas de integración existentes. Dos defectos
+  CRITICAL vivían en producción sin que ninguna de las 116 pruebas anteriores los
+  detectara:
+  1. `POST /api/inventario`: una salida que cruzaba el `stockMinimo` no generaba ninguna
+     `OrdenDeCompra`, **sin error visible** — `OrdenDeCompraServiceImpl.generarSiNecesario`
+     recibía un `Producto` con `stockMinimo == null` y retornaba `null` silenciosamente
+     (FR-006 roto en silencio).
+  2. `POST /api/pedidos`: `HTTP 500` (`NullPointerException` en `Producto.getPrecio()`,
+     vía `PromocionServiceImpl.calcularPrecioConPromocion`) ante cualquier cliente real —
+     bloqueaba por completo la Historia de Usuario 3 (P1) en el servidor real.
+  Ambos pasaron inadvertidos porque `ReposicionAutomaticaIntegrationTest` y
+  `PedidoIntegrationTest` (aunque corren contra un contexto Spring + H2 real, "sin mocks")
+  invocan los servicios directamente desde Java con una entidad `Producto` **ya gestionada
+  por JPA** (`productoRepository.save(producto)`, con todos los campos poblados en
+  memoria), nunca a través de la deserialización JSON real que ejecuta el controlador. Es
+  la misma lección de fondo que las Decisiones 10 y 11 (bugs invisibles a pruebas que no
+  ejercitan la ruta real de ejecución), aplicada esta vez a la capa HTTP/JSON en lugar de a
+  la capa de persistencia/serialización.
+- **Known limitation (no oculta)**: este patrón (recargar por id antes de leer campos) se
+  aplicó puntualmente en los dos puntos donde se detectó el defecto real
+  (`InventarioServiceImpl`, `PedidoServiceImpl`). `VentaServiceImpl.registrarVenta` ya lo
+  hacía correctamente desde antes (T058). No se hizo una auditoría exhaustiva de cada
+  controlador en busca de este mismo patrón más allá de lo verificado en vivo durante esta
+  pasada; un defecto equivalente podría existir en una ruta no ejercitada todavía.
+- **Alternatives considered**: Validar en el controlador que el body no traiga campos
+  adicionales más allá de `id` (rechazado: no ataca la causa raíz, y un cliente que sí
+  mande el objeto completo igual podría enviar datos desactualizados/manipulados —
+  recargar desde la base es la única fuente de verdad correcta para campos de negocio como
+  precio o stock mínimo).
