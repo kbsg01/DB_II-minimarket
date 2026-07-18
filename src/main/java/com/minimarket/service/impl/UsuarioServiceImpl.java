@@ -1,6 +1,7 @@
 package com.minimarket.service.impl;
 
 import com.minimarket.entity.Usuario;
+import com.minimarket.exception.DatosIncompletosException;
 import com.minimarket.repository.UsuarioRepository;
 import com.minimarket.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,5 +39,41 @@ public class UsuarioServiceImpl implements UsuarioService {
     @Override
     public void deleteById(Long id) {
         usuarioRepository.deleteById(id);
+    }
+
+    @Override
+    public boolean datosCompletos(Usuario usuario) {
+        if (usuario == null) {
+            return false;
+        }
+        return tieneValor(usuario.getUsername())
+                && tieneValor(usuario.getNombre())
+                && tieneValor(usuario.getApellido())
+                && tieneValor(usuario.getEmail())
+                && tieneValor(usuario.getDireccion());
+    }
+
+    @Override
+    public Usuario registrar(Usuario usuario) {
+        if (!datosCompletos(usuario)) {
+            throw new DatosIncompletosException(
+                    "El usuario no puede registrarse: faltan datos obligatorios " +
+                    "(username, nombre, apellido, email o dirección).");
+        }
+        return usuarioRepository.save(usuario);
+    }
+
+    @Override
+    public boolean puedeRegistrarVenta(Usuario usuario) {
+        if (usuario == null || usuario.getRoles() == null) {
+            return false;
+        }
+        return usuario.getRoles().stream()
+                .filter(rol -> rol != null && rol.getNombre() != null)
+                .anyMatch(rol -> "ROLE_CAJERO".equals(rol.getNombre()));
+    }
+
+    private boolean tieneValor(String valor) {
+        return valor != null && !valor.trim().isEmpty();
     }
 }
