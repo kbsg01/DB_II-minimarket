@@ -1,0 +1,216 @@
+openapi: 3.0.3
+info:
+  title: MiniMarket Plus Backend API
+  description: >
+    Contrato de referencia (Fase 1 del plan) para las operaciones exigidas por
+    spec.md. Este archivo es un esqueleto de diseño: el detalle completo de
+    schemas se generará automáticamente desde el código con springdoc-openapi
+    (ver research.md, Decisión 3) durante la implementación.
+  version: "0.1.0"
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+tags:
+  - name: auth
+  - name: productos
+  - name: inventario
+  - name: sucursales
+  - name: proveedores
+  - name: ordenes-compra
+  - name: promociones
+  - name: pedidos
+  - name: ventas
+  - name: reportes
+
+paths:
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Autenticar usuario y obtener token JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        "200":
+          description: Autenticación exitosa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+        "401":
+          description: Credenciales inválidas
+
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Registrar un nuevo usuario (cliente o empleado)
+      security: []
+      responses:
+        "201":
+          description: Usuario creado
+        "409":
+          description: Username ya existe
+
+  /productos:
+    get:
+      tags: [productos]
+      summary: Listar catálogo de productos (con enlaces HATEOAS a categoría e inventario)
+      responses:
+        "200":
+          description: Listado de productos
+    post:
+      tags: [productos]
+      summary: Crear producto (requiere rol GERENTE_SUCURSAL o ADMINISTRADOR)
+      responses:
+        "201":
+          description: Producto creado
+        "403":
+          description: Rol sin autorización
+
+  /productos/{productoId}:
+    get:
+      tags: [productos]
+      parameters:
+        - $ref: "#/components/parameters/productoId"
+      responses:
+        "200":
+          description: Detalle de producto con enlaces a inventario/categoría
+    put:
+      tags: [productos]
+      summary: Actualizar precio u otros datos del producto (rol gerencial)
+      parameters:
+        - $ref: "#/components/parameters/productoId"
+      responses:
+        "200":
+          description: Producto actualizado
+        "403":
+          description: Rol sin autorización
+
+  /sucursales/{sucursalId}/productos/{productoId}/disponibilidad:
+    get:
+      tags: [inventario]
+      summary: Consultar disponibilidad de un producto en una sucursal (FR-008)
+      parameters:
+        - $ref: "#/components/parameters/sucursalId"
+        - $ref: "#/components/parameters/productoId"
+      responses:
+        "200":
+          description: Cantidad disponible en la sucursal indicada
+
+  /sucursales/{sucursalId}/inventario:
+    post:
+      tags: [inventario]
+      summary: Registrar movimiento de inventario (entrada/salida) en una sucursal
+      description: >
+        Al registrar una salida que cruza el stock mínimo del producto, genera
+        automáticamente una OrdenDeCompra (FR-006).
+      parameters:
+        - $ref: "#/components/parameters/sucursalId"
+      responses:
+        "201":
+          description: Movimiento registrado
+        "403":
+          description: Rol sin autorización (cajero/reponedor/gerencia)
+
+  /ordenes-compra:
+    get:
+      tags: [ordenes-compra]
+      summary: Listar órdenes de compra generadas (rol gerencial/administrador)
+      responses:
+        "200":
+          description: Listado de órdenes de compra
+
+  /promociones:
+    get:
+      tags: [promociones]
+      summary: Listar promociones vigentes y futuras
+      responses:
+        "200":
+          description: Listado de promociones
+    post:
+      tags: [promociones]
+      summary: Crear promoción centralizada (rol gerencial/administrador)
+      responses:
+        "201":
+          description: Promoción creada
+        "403":
+          description: Rol sin autorización
+
+  /pedidos:
+    post:
+      tags: [pedidos]
+      summary: Generar pedido en línea (retiro o despacho) (FR-009, FR-010, FR-011)
+      responses:
+        "201":
+          description: Pedido confirmado, stock descontado
+        "409":
+          description: Stock insuficiente al momento de confirmar
+
+  /pedidos/{pedidoId}:
+    get:
+      tags: [pedidos]
+      summary: Consultar estado de un pedido (con enlaces a sus detalles)
+      parameters:
+        - name: pedidoId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: Detalle del pedido
+
+  /ventas:
+    get:
+      tags: [ventas]
+      summary: Listar ventas (rol gerencial/cajero según alcance)
+      responses:
+        "200":
+          description: Listado de ventas con enlaces a su detalle
+
+  /reportes/rotacion:
+    get:
+      tags: [reportes]
+      summary: Reporte de rotación de productos por rango de fechas (FR-007)
+      parameters:
+        - name: desde
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: hasta
+          in: query
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Productos más y menos vendidos en el rango indicado
+        "403":
+          description: Rol sin autorización (reservado a gerencia/administración)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    productoId:
+      name: productoId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    sucursalId:
+      name: sucursalId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
