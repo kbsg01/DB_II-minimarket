@@ -16,6 +16,11 @@ public class CustomUserDetails implements UserDetails {
         this.usuario = usuario;
     }
 
+    /** Id del Usuario autenticado, usado para verificar ownership en @PreAuthorize (T049). */
+    public Long getUsuarioId() {
+        return usuario.getId();
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return usuario.getRoles().stream()
