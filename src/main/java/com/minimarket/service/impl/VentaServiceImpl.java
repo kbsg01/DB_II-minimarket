@@ -16,7 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class VentaServiceImpl implements VentaService {
@@ -75,17 +77,28 @@ public class VentaServiceImpl implements VentaService {
         Date fecha = (venta.getFecha() != null) ? venta.getFecha() : new Date();
         venta.setFecha(fecha);
 
-        // Validar stock de cada producto antes de persistir.
+        // Validar stock de cada producto antes de persistir, agregando la cantidad
+        // solicitada por producto dentro de esta misma venta: validar cada DetalleVenta
+        // por separado contra el mismo Producto.stock (todavía no descontado, ya que el
+        // descuento solo ocurre en el bucle siguiente) permitía que dos detalles del mismo
+        // producto pasaran la validación de forma independiente y, sumados, dejaran el
+        // stock en negativo (hallazgo de /speckit-analyze, mismo patrón que
+        // PedidoServiceImpl.confirmarPedido).
+        Map<Long, Integer> cantidadSolicitadaPorProducto = new HashMap<>();
         for (DetalleVenta detalle : venta.getDetalles()) {
-            Producto producto = productoRepository.findById(detalle.getProducto().getId())
+            cantidadSolicitadaPorProducto.merge(
+                    detalle.getProducto().getId(), detalle.getCantidad(), Integer::sum);
+        }
+        for (Map.Entry<Long, Integer> solicitud : cantidadSolicitadaPorProducto.entrySet()) {
+            Producto producto = productoRepository.findById(solicitud.getKey())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "El producto del detalle no existe."));
 
-            if (producto.getStock() < detalle.getCantidad()) {
+            if (producto.getStock() < solicitud.getValue()) {
                 throw new StockInsuficienteException(
                         "Stock insuficiente para el producto '" + producto.getNombre() +
                         "'. Disponible: " + producto.getStock() +
-                        ", solicitado: " + detalle.getCantidad() + ".");
+                        ", solicitado: " + solicitud.getValue() + ".");
             }
         }
 

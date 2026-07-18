@@ -4,6 +4,7 @@ import com.minimarket.entity.*;
 import com.minimarket.exception.DatosIncompletosException;
 import com.minimarket.exception.StockInsuficienteException;
 import com.minimarket.repository.PedidoRepository;
+import com.minimarket.repository.ProductoRepository;
 import com.minimarket.service.impl.PedidoServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,6 +41,9 @@ class PedidoServiceTest {
 
     @Mock
     private VentaService ventaService;
+
+    @Mock
+    private ProductoRepository productoRepository;
 
     @InjectMocks
     private PedidoServiceImpl pedidoService;
@@ -89,6 +94,7 @@ class PedidoServiceTest {
     @Test
     void confirmarPedido_stockSuficiente_confirmaDescuentaYRegistraVenta() {
         Pedido pedido = pedidoConDetalle(3);
+        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
         when(inventarioService.calcularStockVigente(1L, 1L)).thenReturn(10);
         when(promocionService.calcularPrecioConPromocion(eq(producto), any())).thenReturn(1000.0);
         when(pedidoRepository.save(any(Pedido.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -105,6 +111,7 @@ class PedidoServiceTest {
     @Test
     void confirmarPedido_stockInsuficiente_lanzaExcepcionYNoDescuenta() {
         Pedido pedido = pedidoConDetalle(5);
+        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
         when(inventarioService.calcularStockVigente(1L, 1L)).thenReturn(2);
 
         assertThrows(StockInsuficienteException.class, () -> pedidoService.confirmarPedido(pedido));
@@ -134,8 +141,69 @@ class PedidoServiceTest {
     }
 
     @Test
+    void confirmarPedido_dosDetallesMismoProducto_agregaCantidadYRechazaSiExcedeStock() {
+        // Regresión de /speckit-analyze: dos DetallePedido del mismo producto+sucursal
+        // (3 + 3 = 6) contra un stock vigente de 5 no debían pasar la revalidación por
+        // separado. Antes del fix, cada detalle se comparaba de forma independiente contra
+        // el mismo stock (todavía no descontado), por lo que ambos pasaban y el pedido
+        // dejaba el stock en -1.
+        Pedido pedido = new Pedido();
+        pedido.setUsuario(usuario);
+        pedido.setSucursal(sucursal);
+        pedido.setModoEntrega("RETIRO_TIENDA");
+
+        DetallePedido detalle1 = new DetallePedido();
+        detalle1.setProducto(producto);
+        detalle1.setCantidad(3);
+
+        DetallePedido detalle2 = new DetallePedido();
+        detalle2.setProducto(producto);
+        detalle2.setCantidad(3);
+
+        pedido.setDetalles(List.of(detalle1, detalle2));
+
+        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(inventarioService.calcularStockVigente(1L, 1L)).thenReturn(5);
+
+        assertThrows(StockInsuficienteException.class, () -> pedidoService.confirmarPedido(pedido));
+
+        verify(inventarioService, never()).registrarMovimiento(any(Inventario.class));
+        verify(pedidoRepository, never()).save(any(Pedido.class));
+        verify(ventaService, never()).registrarDesdePedido(any(Pedido.class));
+    }
+
+    @Test
+    void confirmarPedido_dosDetallesMismoProducto_confirmaSiStockAlcanzaParaElTotal() {
+        Pedido pedido = new Pedido();
+        pedido.setUsuario(usuario);
+        pedido.setSucursal(sucursal);
+        pedido.setModoEntrega("RETIRO_TIENDA");
+
+        DetallePedido detalle1 = new DetallePedido();
+        detalle1.setProducto(producto);
+        detalle1.setCantidad(3);
+
+        DetallePedido detalle2 = new DetallePedido();
+        detalle2.setProducto(producto);
+        detalle2.setCantidad(2);
+
+        pedido.setDetalles(List.of(detalle1, detalle2));
+
+        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(inventarioService.calcularStockVigente(1L, 1L)).thenReturn(5);
+        when(promocionService.calcularPrecioConPromocion(eq(producto), any())).thenReturn(1000.0);
+        when(pedidoRepository.save(any(Pedido.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Pedido resultado = pedidoService.confirmarPedido(pedido);
+
+        assertEquals("CONFIRMADO", resultado.getEstado());
+        verify(inventarioService, times(2)).registrarMovimiento(any(Inventario.class));
+    }
+
+    @Test
     void confirmarPedido_aplicaPrecioPromocional() {
         Pedido pedido = pedidoConDetalle(2);
+        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
         when(inventarioService.calcularStockVigente(1L, 1L)).thenReturn(10);
         when(promocionService.calcularPrecioConPromocion(eq(producto), any())).thenReturn(800.0);
         ArgumentCaptor<Pedido> captor = ArgumentCaptor.forClass(Pedido.class);

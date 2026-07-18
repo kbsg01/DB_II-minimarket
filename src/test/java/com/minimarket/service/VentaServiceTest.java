@@ -137,6 +137,42 @@ public class VentaServiceTest {
         verify(ventaRepository, never()).save(any(Venta.class));
     }
 
+    @Test
+    public void registrarVenta_dosDetallesMismoProducto_agregaCantidadYRechazaSiExcedeStock() {
+        // Regresión de /speckit-analyze: dos DetalleVenta del mismo producto (3 + 3 = 6)
+        // contra un stock de 5 no debían pasar la validación por separado. Antes del fix,
+        // cada detalle se comparaba de forma independiente contra el mismo
+        // Producto.stock (todavía no descontado), por lo que ambos pasaban y el segundo
+        // descuento dejaba el stock en -1.
+        Producto leche = producto(1L, "Leche", 1000.0, 5);
+        Venta venta = ventaConUsuario(List.of(
+                detalle(leche, 3, 1000.0),
+                detalle(leche, 3, 1000.0)
+        ));
+        when(productoRepository.findById(1L)).thenReturn(Optional.of(leche));
+
+        assertThrows(StockInsuficienteException.class, () -> ventaService.registrarVenta(venta));
+
+        verify(ventaRepository, never()).save(any(Venta.class));
+        assertEquals(5, leche.getStock());
+    }
+
+    @Test
+    public void registrarVenta_dosDetallesMismoProducto_confirmaSiStockAlcanzaParaElTotal() {
+        Producto leche = producto(1L, "Leche", 1000.0, 5);
+        Venta venta = ventaConUsuario(List.of(
+                detalle(leche, 3, 1000.0),
+                detalle(leche, 2, 1000.0)
+        ));
+        when(productoRepository.findById(1L)).thenReturn(Optional.of(leche));
+        when(ventaRepository.save(venta)).thenReturn(venta);
+
+        Venta resultado = ventaService.registrarVenta(venta);
+
+        assertNotNull(resultado);
+        assertEquals(0, leche.getStock());
+    }
+
     // ---------- Relaciones del modelo (criterio 4: ≥2 relaciones distintas) ----------
 
     @Test

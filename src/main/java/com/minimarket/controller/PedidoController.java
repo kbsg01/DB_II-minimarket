@@ -1,6 +1,7 @@
 package com.minimarket.controller;
 
 import com.minimarket.entity.Pedido;
+import com.minimarket.entity.Usuario;
 import com.minimarket.security.model.CustomUserDetails;
 import com.minimarket.service.PedidoService;
 import com.minimarket.web.PedidoModelAssembler;
@@ -46,13 +47,15 @@ public class PedidoController {
     }
 
     @Operation(summary = "Generar un pedido en línea",
-               description = "Revalida disponibilidad al confirmar, aplica el precio promocional vigente y descuenta stock.")
+               description = "Revalida disponibilidad al confirmar, aplica el precio promocional vigente y descuenta stock. " +
+                       "El pedido siempre se confirma a nombre del usuario autenticado: cualquier usuario.id recibido en el body se ignora.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Pedido confirmado, stock descontado"),
         @ApiResponse(responseCode = "409", description = "Stock insuficiente al momento de confirmar")
     })
     @PostMapping("/api/pedidos")
     public Pedido crearPedido(@RequestBody Pedido pedido) {
+        pedido.setUsuario(usuarioAutenticado());
         return pedidoService.confirmarPedido(pedido);
     }
 
@@ -70,6 +73,23 @@ public class PedidoController {
         }
         verificarPropietarioODeGestion(pedido);
         return ResponseEntity.ok(pedidoModelAssembler.toModel(pedido));
+    }
+
+    /**
+     * El pedido siempre se confirma a nombre de quien está autenticado: se ignora
+     * cualquier usuario.id recibido en el body (Constitution Principio II / FR-009 /
+     * FR-010, hallazgo T060 de /speckit-converge, tercera pasada). Sin este método,
+     * cualquier usuario autenticado podía generar un pedido —y su Venta asociada— a
+     * nombre de otra persona con solo indicar un usuario.id ajeno en la solicitud.
+     */
+    private Usuario usuarioAutenticado() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth.getPrincipal() instanceof CustomUserDetails cud) {
+            Usuario usuario = new Usuario();
+            usuario.setId(cud.getUsuarioId());
+            return usuario;
+        }
+        throw new AccessDeniedException("No autorizado");
     }
 
     /**

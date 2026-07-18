@@ -566,3 +566,147 @@ solo por inspección de código. Ordenadas CRITICAL primero.
       `/speckit-implement` (contradicts, LOW). ✅ `plan.md` corregido: `Lombok` retirado
       de "Primary Dependencies", con una nota explícita de por qué no es una dependencia
       del proyecto.
+
+## Phase 10: Convergence
+
+**Purpose**: Cerrar las brechas detectadas por una tercera pasada de `/speckit-converge`
+(2026-07-18) tras completar la Fase 9. Verificadas por lectura directa del código actual
+(no solo por el texto de tareas previas), con `./mvnw test` en `BUILD SUCCESS` (116/116)
+como línea base. Ordenadas CRITICAL primero.
+
+- [X] T060 Agregar autorización de propiedad a `POST /api/pedidos`
+      (`PedidoController.crearPedido`) y `PedidoServiceImpl.confirmarPedido`: actualmente
+      cualquier usuario autenticado, de cualquier rol, puede enviar un `Pedido` con un
+      `usuario.id` arbitrario en el cuerpo de la solicitud, y el sistema lo confirma sin
+      verificar que corresponda al usuario autenticado — descuenta stock y genera una
+      `Venta` a nombre de otra persona. `PedidoController.crearPedido`
+      (`src/main/java/com/minimarket/controller/PedidoController.java`) no tiene
+      `@PreAuthorize` ni verificación de propiedad, y `PedidoServiceImpl.confirmarPedido`
+      (`src/main/java/com/minimarket/service/impl/PedidoServiceImpl.java`) nunca compara
+      `pedido.getUsuario()` contra el usuario autenticado — la misma clase de brecha que
+      T056/T057 ya corrigieron para las lecturas de `Carrito`/`Venta`/`Pedido`, pero no
+      para esta escritura. Forzar que `pedido.usuario` sea siempre el usuario autenticado
+      (ignorando cualquier `usuario.id` recibido en el body), replicando el patrón de
+      `CarritoController.verificarPropietarioODeGestion`, per Constitution Principio II /
+      FR-009 / FR-010 (missing, CRITICAL). ✅ `PedidoController.crearPedido` ahora llama a
+      `usuarioAutenticado()` (extraído del `CustomUserDetails` del contexto de seguridad)
+      y sobrescribe `pedido.setUsuario(...)` antes de invocar al servicio, ignorando
+      cualquier `usuario.id` recibido en el body. Nuevo
+      `src/test/java/com/minimarket/security/PedidoAutorizacionTest.java` (con
+      `@WithUserDetails("cliente")` real, no mock genérico) verifica que un body con
+      `usuario.id` del usuario `admin` termina de todas formas asociado al `cliente`
+      autenticado. `./mvnw test` → 117/117, `BUILD SUCCESS`.
+- [X] T061 Documentar en `research.md` (o como comentario en `PromocionServiceImpl`) la
+      resolución del edge case de spec.md: "¿Qué ocurre si una promoción vigente y un
+      cambio manual de precio ocurren sobre el mismo producto al mismo tiempo? Debe
+      quedar definido cuál prevalece". Actualmente `PromocionServiceImpl.calcularPrecioConPromocion`
+      (usada de forma idéntica en `VentaServiceImpl.registrarVenta` y
+      `PedidoServiceImpl.confirmarPedido`) recalcula el descuento contra
+      `producto.getPrecio()` vigente al momento de la transacción, lo cual es de facto
+      una respuesta a la pregunta del edge case, pero no queda registrada como decisión
+      explícita en ningún lado, per spec.md Edge Cases (partial, MEDIUM). ✅ Documentado en
+      `research.md` Decisión 13: el precio manual vigente al confirmar siempre prevalece
+      como base, y la promoción vigente en ese mismo instante se aplica como descuento
+      sobre ese precio base (nunca un precio cacheado); se documenta también la limitación
+      conocida de ausencia de bloqueo optimista sobre `Producto.precio`.
+
+## Phase 11: Convergence
+
+**Purpose**: Cerrar las brechas detectadas por una cuarta pasada de `/speckit-converge`
+(2026-07-18), esta vez ejercitando el servidor real en vivo (`./mvnw spring-boot:run` +
+`curl` contra `http://localhost:8090`) en lugar de solo leer el código o llamar a los
+servicios directamente desde una prueba — la misma disciplina que ya exigía
+`specs/002-guion-video-ejecucion` para no repetir la causa raíz de `doc/grupo7.html`. Todas
+las pruebas automatizadas existentes (incluidas las de integración con Spring Boot + H2
+real) invocaban los servicios con entidades `Producto` ya gestionadas por JPA con todos sus
+campos poblados, nunca a través del `MockMvc`/JSON real que usa cualquier cliente HTTP
+real de la API — lo que dejó sin detectar los tres hallazgos siguientes durante las Fases
+8-10. Ordenadas CRITICAL primero.
+
+- [X] T062 Crear `SucursalController` y `ProveedorController` (con sus respectivos
+      `SucursalService`/`ProveedorService` y `SucursalModelAssembler`/
+      `ProveedorModelAssembler`), y sembrar en `DataInitializer` los "datos semilla
+      mínimos" que `quickstart.md` (Prerrequisitos) ya declaraba como requisito ("al menos
+      una Sucursal, un Proveedor, un Producto con stockMinimo configurado"):
+      `contracts/openapi.yaml` ya declaraba los tags `sucursales`/`proveedores`, pero no
+      existía ningún controlador real detrás — sin él, no había forma de crear una
+      `Sucursal` o un `Proveedor` a través de la API, y el servidor recién levantado no
+      podía demostrar ningún escenario de `quickstart.md` (US2/US3) sin manipular la base
+      directamente. Detectado al intentar poblar datos de prueba contra el servidor real
+      (`POST /api/sucursales` → `404 No static resource`). Per FR-005/FR-006 y
+      `contracts/openapi.yaml` (missing, CRITICAL). ✅
+      `src/main/java/com/minimarket/controller/{Sucursal,Proveedor}Controller.java`,
+      `service/{Sucursal,Proveedor}Service.java` + `service/impl/...Impl.java`,
+      `web/{Sucursal,Proveedor}ModelAssembler.java` creados (mismo patrón que
+      `CategoriaController`: lectura abierta a cualquier autenticado, mutaciones
+      restringidas a `GERENTE_SUCURSAL`/`ADMINISTRADOR`); `DataInitializer` siembra 1
+      `Proveedor`, 1 `Sucursal`, 1 `Categoria` y 1 `Producto` con `stockMinimo`/`proveedor`
+      si la base está vacía. Nuevos `SucursalServiceTest`, `ProveedorServiceTest`,
+      `SucursalYProveedorAutorizacionTest` y un caso en `HateoasLinksTest`. Verificado en
+      vivo: `GET /api/sucursales` y `GET /api/proveedores` devuelven `200` con datos reales
+      y `_links` HATEOAS.
+- [X] T063 Corregir `InventarioServiceImpl.registrarMovimiento`: al disparar la reposición
+      automática (FR-006), pasaba `guardado.getProducto()` — el objeto `Producto` tal como
+      llegó en el body JSON de `POST /api/inventario` (solo `{"id": X}`, el mismo patrón de
+      referencia mínima que usa el resto de la API) — directamente a
+      `OrdenDeCompraService.generarSiNecesario`, que lee `producto.getStockMinimo()` y
+      `producto.getProveedor()`. Como esos campos nunca se recargaban desde la base, la
+      condición `stockMinimo == null` hacía que el método retornara sin generar ninguna
+      orden, **en silencio, sin error** — verificado en vivo con `POST /api/inventario`
+      real: una salida que cruzaba el mínimo no generaba ninguna orden en
+      `GET /api/ordenes-compra`, mientras que las pruebas de integración existentes
+      (`ReposicionAutomaticaIntegrationTest`) nunca lo detectaron porque invocaban el
+      servicio con una entidad `Producto` ya gestionada por JPA (con `stockMinimo` poblado
+      en memoria). Per FR-006 y Constitution Principio V (contradicts, CRITICAL). ✅
+      `InventarioServiceImpl` ahora recarga el `Producto` completo vía `ProductoRepository`
+      antes de invocar `generarSiNecesario`. Nuevo
+      `PedidoInventarioApiIntegrationTest.postInventarioConReferenciaMinimaDisparaReposicionAutomatica`
+      (MockMvc + JSON real, sin mocks) reproduce el escenario exacto y falla si la
+      regresión reaparece. Re-verificado en vivo: la misma secuencia ahora genera
+      exactamente 1 orden `PENDIENTE`.
+- [X] T064 Corregir `PedidoServiceImpl.confirmarPedido`: usaba `detalle.getProducto()` —
+      igualmente solo `{"id": X}` desde el body JSON de `POST /api/pedidos` — para calcular
+      el precio vía `PromocionServiceImpl.calcularPrecioConPromocion(producto, fecha)`, que
+      lee `producto.getPrecio()`. Con el `Producto` no recargado, `getPrecio()` devolvía
+      `null`, y el auto-unboxing a `double` lanzaba `NullPointerException` →
+      **`POST /api/pedidos` respondía `HTTP 500` ante cualquier cliente real** que usara el
+      mismo patrón de referencia mínima ya usado en el resto de la API (Carrito,
+      DetalleVenta, Inventario) — verificado en vivo. `PedidoIntegrationTest` y
+      `PedidoServiceTest` no lo detectaron porque invocaban `confirmarPedido` con una
+      entidad `Producto` ya gestionada por JPA. Esto bloqueaba por completo, en el servidor
+      real, la Historia de Usuario 3 (P1) — el flujo central de pedidos en línea del caso
+      de negocio. Per FR-009/FR-010/FR-011 y Constitution Principio V (contradicts,
+      CRITICAL). ✅ `PedidoServiceImpl.confirmarPedido` ahora recarga el `Producto`
+      completo de cada `DetallePedido` vía `ProductoRepository` antes de calcular
+      disponibilidad y precio. `PedidoServiceTest` actualizado (mock de
+      `ProductoRepository`). Nuevo
+      `PedidoInventarioApiIntegrationTest.postPedidoConReferenciaMinimaNoFallaYAplicaPrecioReal`
+      (MockMvc + JSON real) reproduce el escenario exacto. Re-verificado en vivo: el mismo
+      `POST /api/pedidos` que antes devolvía `500` ahora devuelve `200` con
+      `precioAplicado` real y el pedido atribuido correctamente al usuario autenticado
+      (T060). `./mvnw test` → 135/135, `BUILD SUCCESS`.
+
+## Phase 12: Convergence
+
+**Purpose**: Cerrar la brecha detectada por `/speckit-analyze` (2026-07-18) al leer el
+código real detrás de las tareas T060-T064 en lugar de solo el texto de tasks.md.
+Ordenada CRITICAL.
+
+- [X] T065 Corregir `PedidoServiceImpl.confirmarPedido` y `VentaServiceImpl.registrarVenta`:
+      ambas revalidaban stock **por línea de detalle**, comparando cada `DetallePedido`/
+      `DetalleVenta` contra el mismo stock vigente (todavía no descontado, porque el
+      descuento solo ocurre en un bucle posterior). Un `Pedido`/`Venta` con dos detalles
+      del mismo producto+sucursal (p. ej. 3 + 3 unidades contra 5 en stock) pasaba la
+      revalidación en ambas líneas de forma independiente y, al aplicar ambos descuentos,
+      dejaba el stock en negativo — violando FR-010/SC-006 ("100% de los pedidos
+      confirmados con stock insuficiente son rechazados") y Constitution Principio V. Ni
+      `PedidoServiceTest` ni `VentaServiceTest`/`VentaIntegrationTest` cubrían el caso de
+      dos detalles del mismo producto en una misma solicitud. Per FR-010/FR-015
+      (contradicts, CRITICAL). ✅ Ambos métodos ahora agregan (`Map<Long, Integer>`) la
+      cantidad solicitada por producto dentro de la misma solicitud antes de comparar
+      contra el stock vigente, rechazando si el total agregado excede lo disponible.
+      Nuevos casos en `PedidoServiceTest`
+      (`confirmarPedido_dosDetallesMismoProducto_agregaCantidadYRechazaSiExcedeStock`,
+      `..._confirmaSiStockAlcanzaParaElTotal`) y `VentaServiceTest`
+      (`registrarVenta_dosDetallesMismoProducto_agregaCantidadYRechazaSiExcedeStock`,
+      `..._confirmaSiStockAlcanzaParaElTotal`). `./mvnw test` → 139/139, `BUILD SUCCESS`.

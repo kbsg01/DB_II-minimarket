@@ -26,7 +26,7 @@ La aplicación queda disponible en `http://localhost:8080`.
 ./mvnw test
 ```
 
-Resultado esperado: `Tests run: 114, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS`.
+Resultado esperado: `Tests run: 135, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS`.
 
 ## Autenticación
 
@@ -38,15 +38,24 @@ curl -X POST http://localhost:8080/api/auth/login \
   -d '{"username":"admin","password":"admin123"}'
 ```
 
-Usuarios de demostración (creados automáticamente al arrancar por `DataInitializer`):
+Usuarios de demostración (creados automáticamente al arrancar por `DataInitializer`, uno
+por cada uno de los 7 roles del caso de negocio):
 
 | Usuario | Contraseña | Rol |
 |---|---|---|
-| `admin` | `admin123` | ROLE_ADMIN |
-| `cajero` | `cajero123` | ROLE_CAJERO |
-| `cliente` | `cliente123` | ROLE_CLIENTE |
+| `admin` | `admin123` | `ROLE_ADMINISTRADOR` |
+| `gerente` | `gerente123` | `ROLE_GERENTE_SUCURSAL` |
+| `jefeturno` | `jefeturno123` | `ROLE_JEFE_TURNO` |
+| `cajero` | `cajero123` | `ROLE_CAJERO` |
+| `reponedor` | `reponedor123` | `ROLE_REPONEDOR` |
+| `asistente` | `asistente123` | `ROLE_ASISTENTE_SERVICIO_CLIENTE` |
+| `cliente` | `cliente123` | `ROLE_CLIENTE` |
 
 Incluir el token recibido en peticiones posteriores: `Authorization: Bearer <token>`.
+
+`DataInitializer` también siembra los datos mínimos que la API necesita para operar sin
+pasos manuales: una `Sucursal`, un `Proveedor`, una `Categoria` y un `Producto` con
+`stockMinimo`/`proveedor` configurados.
 
 **Limitación conocida — revocación de rol durante una sesión activa**: el token JWT es
 autocontenido y expira a las 24 h (`JwtUtil.EXPIRATION_MS`); no existe una lista de
@@ -81,6 +90,6 @@ está fijado en la versión `3.14.0` por el mismo motivo. Ver
 
 La documentación OpenAPI (Swagger UI) y los enlaces HATEOAS (`_links`) están
 implementados y verificados en todos los recursos (Producto, Categoría, Inventario,
-Carrito, Venta, DetalleVenta, Pedido, OrdenDeCompra, Promoción) vía
+Carrito, Venta, DetalleVenta, Pedido, OrdenDeCompra, Promoción, Sucursal, Proveedor) vía
 `RepresentationModelAssembler` — ver `doc/consolidacion-s6/capacidades-verificadas.md` y
 `specs/001-minimarket-backend-spec/spec.md` (Historia de Usuario 4) para el detalle.
