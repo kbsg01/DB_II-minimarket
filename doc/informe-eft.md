@@ -12,7 +12,7 @@
 
 Toda la evidencia presentada en este informe —resultados de pruebas, respuestas HTTP y
 capturas de pantalla— fue obtenida mediante ejecución directa del servidor
-(`./mvnw spring-boot:run`) y de la suite de pruebas (`./mvnw test`); las fechas de
+(`./mvnw spring-boot:run`, o ejecución desde IDE) y de la suite de pruebas (`./mvnw test`, o ejecución desde IDE); las fechas de
 verificación se indican junto a cada evidencia.
 
 ---
@@ -368,41 +368,6 @@ respuesta es genuino, solo el formato de presentación es local.
 
 El guion completo, con la secuencia detallada para el video de presentación, está en
 `doc/guion-video-eft.md`.
-
----
-
-## 7. Autoevaluación frente a la pauta de evaluación
-
-| # | Criterio (pauta) | Evidencia de este proyecto | Nivel autopercibido |
-|---|---|---|---|
-| 1 | Desarrolla microservicios implementando las operaciones requeridas (15 pts) | 11 recursos de negocio con CRUD completo y reglas de negocio (stock, promociones, pedidos, reposición automática) | Completamente Logrado |
-| 2 | Implementa frameworks de seguridad (15 pts) | JWT (JJWT HS256) + `@PreAuthorize` por rol y por propiedad en 14 controladores; verificado en vivo (§2.4) | Completamente Logrado |
-| 3 | Configura y ejecuta pruebas unitarias (10 pts) | 137 pruebas en 21 clases, incluyendo integración real sin mocks y contra `MockMvc`/JSON real (§3) | Completamente Logrado |
-| 4 | Documenta la API con OpenAPI y HATEOAS (10 pts) | Swagger UI con 14 tags; HATEOAS real en 11 recursos, verificado en vivo (§5) | Completamente Logrado |
-| 5 | Integra los componentes del backend (15 pts) | `./mvnw test` → `BUILD SUCCESS`; flujo completo de disponibilidad → pedido → venta → reposición automática validado contra el servidor real en ejecución (§4.3) | Completamente Logrado |
-| 6 | Genera un informe detallando el proceso y las evidencias (10 pts) | Este documento, con evidencia de ejecución citada en cada sección, incluyendo capturas de pantalla en `doc/capturas/` | Completamente Logrado |
-| 7 | Presenta el proyecto en un video (15 pts) | Guion completo en `doc/guion-video-eft.md`; grabación pendiente | *(pendiente de ejecutar)* |
-| 8 | Organiza el código con buenas prácticas (10 pts) | Sin código muerto (Lombok retirado por no usarse), separación por capas (controller/service/repository/entity), validaciones centralizadas, manejo de excepciones vía `@RestControllerAdvice` | Completamente Logrado |
-
-El criterio 7 (video) no se autoevalúa como logrado porque la grabación no se ha
-realizado; se declara así explícitamente en vez de omitirse.
-
----
-
-## 8. Pendientes antes de la entrega final
-
-- [ ] Nombres reales de los integrantes del equipo (2-3 personas) y su jefe de proyecto —
-      bloquea completar la portada de este informe y la columna "Responsable" de
-      `doc/guion-video-eft.md`.
-- [ ] Grabación del video (Kaltura, 7-10 min) siguiendo `doc/guion-video-eft.md`.
-- [x] Incorporación de capturas de pantalla reales a este informe (`doc/capturas/`,
-      sección 6), tomadas contra el servidor real. Queda pendiente **trasladarlas** a la
-      plantilla oficial (`doc/PBY2202_EFT_Plantilla_Informe_PDF.docx`) al momento de
-      exportar el informe final.
-- [ ] Creación del repositorio público en GitHub, subida del proyecto completo y del
-      video, y generación del enlace a entregar en el AVA (pasos 1-4 de las instrucciones
-      específicas).
-- [ ] Exportación de este informe a la plantilla `.docx` oficial y a PDF final.
 
 ---
 
