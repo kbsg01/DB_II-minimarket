@@ -72,5 +72,7 @@ solo cambia el continente. Documenta en el informe cómo se produjeron.
   → el servidor ignora el body y atribuye el pedido al usuario autenticado (T060);
   `GET /api/productos/1` devuelve `_links` reales con `self`, `productos`, `categoria`
   e `inventario`.
-- **05** — `./mvnw test` → 135/135 pruebas, `BUILD SUCCESS`, tiempo total ≈ 24 s
-  sobre JDK 25.0.3, con el desglose por clase (21 clases de prueba).
+- **05** — `./mvnw test` → 137/137 pruebas, `BUILD SUCCESS`, tiempo total ≈ 23 s
+  sobre JDK 25.0.3, con el desglose por clase (21 clases de prueba: incluye las 2
+  nuevas pruebas de autopoblación de `fechaMovimiento` agregadas al blindar el fix
+  de `InventarioServiceImpl`).

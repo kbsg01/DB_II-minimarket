@@ -7,7 +7,8 @@
 **Integrantes del equipo**: *(completar)*
 **Jefe de proyecto**: *(completar)*
 **Fecha de entrega**: *(completar)*
-**Última verificación de esta evidencia**: 2026-07-19 (JDK 25.0.3, Spring Boot 3.4.1)
+**Última verificación de esta evidencia**: 2026-07-19 (JDK 25.0.3, Spring Boot 3.4.1);
+`./mvnw test` → **137/137 BUILD SUCCESS**
 
 Toda la evidencia presentada en este informe —resultados de pruebas, respuestas HTTP y
 capturas de pantalla— fue obtenida mediante ejecución directa del servidor
@@ -140,14 +141,14 @@ producción (versión de token por usuario), fuera del alcance de esta EFT.
 ```bash
 $ ./mvnw test
 ...
-[INFO] Tests run: 135, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 137, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 [INFO] Total time:  24.934 s
 ```
 
-![Salida completa de ./mvnw test: 135/135, BUILD SUCCESS](capturas/05-pruebas-unitarias.png)
+![Salida completa de ./mvnw test: 137/137, BUILD SUCCESS](capturas/05-pruebas-unitarias.png)
 
-### 3.1 Inventario de clases de prueba (21 clases, 135 pruebas)
+### 3.1 Inventario de clases de prueba (21 clases, 137 pruebas)
 
 | Clase | Tipo | Qué cubre |
 |---|---|---|
@@ -155,7 +156,7 @@ $ ./mvnw test
 | `UsuarioTest` | Unitaria (entidad) | Constructores de `Usuario`/`Rol`. |
 | `service.ProductoServiceTest` | Unitaria (Mockito) | CRUD de productos. |
 | `service.CarritoServiceTest` | Unitaria (Mockito) | `agregarProducto` con validación de stock (`StockInsuficienteException`, `DatosIncompletosException`). |
-| `service.InventarioServiceTest` | Unitaria (Mockito) | Validación de movimientos (tipo, cantidad, producto, sucursal), reposición automática al llegar a stock mínimo, y actualización de movimientos sin duplicar el efecto de reposición. |
+| `service.InventarioServiceTest` | Unitaria (Mockito) | Validación de movimientos (tipo, cantidad, producto, sucursal), reposición automática al llegar a stock mínimo, actualización de movimientos sin duplicar el efecto de reposición, y autopoblación de `fechaMovimiento` cuando el body no la trae (con preservación si el cliente sí la envía). |
 | `service.UsuarioServiceTest` | Unitaria (Mockito) | `datosCompletos`, `registrar`, `puedeRegistrarVenta`. |
 | `service.VentaServiceTest` | Unitaria (Mockito) | `calcularTotal`, `registrarVenta`. |
 | `service.OrdenDeCompraServiceTest` | Unitaria (Mockito) | Generación de orden de compra solo cuando corresponde (stock mínimo definido, proveedor asociado, sin duplicar orden pendiente). |
@@ -240,6 +241,19 @@ Se agregó `web.PedidoInventarioApiIntegrationTest`, que reproduce ambos escenar
 `MockMvc` con JSON real, para que esta clase de defecto quede cubierta por la suite
 automatizada.
 
+**Defecto adicional detectado en la reverificación del 2026-07-19 (evidencia cruda para
+capturas)**: `POST /api/inventario` respondía `HTTP 500` (`not-null property references
+a null or transient value: Inventario.fechaMovimiento`) cuando el body no incluía
+`fechaMovimiento`. Aunque las pruebas de integración existentes seguían pasando porque
+el body de esos tests sí enviaba `fechaMovimiento` explícita, un cliente HTTP real —el
+propio informe pide un `curl` mínimo— fallaba de entrada. Corrección: en
+`InventarioServiceImpl.registrarMovimiento` y `actualizarMovimiento`, si
+`inventario.getFechaMovimiento() == null` el servicio la asigna a `new Date()` antes
+de persistir; si el cliente sí la envía, se preserva. Se agregaron dos pruebas
+unitarias nuevas a `InventarioServiceTest` (`registrarMovimientoSinFechaLaAsignaAutomaticamente`
+y `registrarMovimientoConFechaExplicitaLaPreserva`) para blindar ambos casos, elevando
+la suite a **137/137 BUILD SUCCESS**.
+
 Adicionalmente, se corrigió que `VentaController.guardarVenta` invocaba `VentaService.save()`
 en lugar de `VentaService.registrarVenta()`: la venta directa en tienda no validaba ni
 descontaba stock, no aplicaba promociones, y fallaba con `HTTP 500` en uso normal. Se
@@ -266,7 +280,7 @@ contra el servidor real:
 ![Pedido en línea: respuesta 200 con precio real y enlaces HATEOAS](capturas/04-pedidos-hateoas.png)
 
 Tras el conjunto completo de correcciones descritas en esta sección, la suite completa se
-ejecuta en 135/135 con `BUILD SUCCESS` (§3), y los hallazgos de autorización y los defectos
+ejecuta en 137/137 con `BUILD SUCCESS` (§3), y los hallazgos de autorización y los defectos
 funcionales se reverificaron en vivo contra el mismo servidor real.
 
 ---
@@ -349,7 +363,7 @@ respuesta es genuino, solo el formato de presentación es local.
    `_links` con `self`/`productos`/`categoria`/`inventario`. →
    `doc/capturas/04-pedidos-hateoas.png`
 8. **Swagger UI** → 14 tags de recursos de negocio. → `doc/capturas/01-swagger-ui.png`
-9. **Pruebas unitarias** (`./mvnw test`) → `Tests run: 135, Failures: 0, Errors: 0, Skipped: 0`,
+9. **Pruebas unitarias** (`./mvnw test`) → `Tests run: 137, Failures: 0, Errors: 0, Skipped: 0`,
    `BUILD SUCCESS`. → `doc/capturas/05-pruebas-unitarias.png`
 
 El guion completo, con la secuencia detallada para el video de presentación, está en
@@ -363,7 +377,7 @@ El guion completo, con la secuencia detallada para el video de presentación, es
 |---|---|---|---|
 | 1 | Desarrolla microservicios implementando las operaciones requeridas (15 pts) | 11 recursos de negocio con CRUD completo y reglas de negocio (stock, promociones, pedidos, reposición automática) | Completamente Logrado |
 | 2 | Implementa frameworks de seguridad (15 pts) | JWT (JJWT HS256) + `@PreAuthorize` por rol y por propiedad en 14 controladores; verificado en vivo (§2.4) | Completamente Logrado |
-| 3 | Configura y ejecuta pruebas unitarias (10 pts) | 135 pruebas en 20 clases, incluyendo integración real sin mocks y contra `MockMvc`/JSON real (§3) | Completamente Logrado |
+| 3 | Configura y ejecuta pruebas unitarias (10 pts) | 137 pruebas en 21 clases, incluyendo integración real sin mocks y contra `MockMvc`/JSON real (§3) | Completamente Logrado |
 | 4 | Documenta la API con OpenAPI y HATEOAS (10 pts) | Swagger UI con 14 tags; HATEOAS real en 11 recursos, verificado en vivo (§5) | Completamente Logrado |
 | 5 | Integra los componentes del backend (15 pts) | `./mvnw test` → `BUILD SUCCESS`; flujo completo de disponibilidad → pedido → venta → reposición automática validado contra el servidor real en ejecución (§4.3) | Completamente Logrado |
 | 6 | Genera un informe detallando el proceso y las evidencias (10 pts) | Este documento, con evidencia de ejecución citada en cada sección, incluyendo capturas de pantalla en `doc/capturas/` | Completamente Logrado |

@@ -26,7 +26,7 @@ La aplicación queda disponible en `http://localhost:8080`.
 ./mvnw test
 ```
 
-Resultado esperado: `Tests run: 135, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS`
+Resultado esperado: `Tests run: 137, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS`
 (21 clases de prueba: 10 unitarias con Mockito sobre servicios, 1 unitaria sobre la
 entidad `Usuario`, 9 de integración con `@SpringBootTest` sin mocks — incluidas 4 con
 `MockMvc` sobre JSON real —, y 1 smoke test del contexto Spring). Verificado 2026-07-19
