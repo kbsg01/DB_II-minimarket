@@ -1,0 +1,46 @@
+========================================================================
+EVIDENCIA 04 — Pedidos en línea, precios reales y HATEOAS
+Servidor real en ejecución — http://localhost:8080 — 2026-07-19 00:14:32 -0400
+Rama: feat/eft-s9 — verifica FR-008..011, FR-013 y la corrección del defecto T064
+========================================================================
+
+[1] POST /api/pedidos  como 'cliente' con body mínimo real (JSON de cliente HTTP)
+------------------------------------------------------------------------
+$ curl -s -X POST http://localhost:8080/api/pedidos \
+    -H "Authorization: Bearer <token_cliente>" \
+    -d "{\"sucursal\":{\"id\":1},\"modoEntrega\":\"RETIRO_TIENDA\",
+        \"detalles\":[{\"producto\":{\"id\":1},\"cantidad\":1}]}"
+
+     (antes de la corrección T064 este mismo body respondía HTTP 500 por
+      NullPointerException al leer Producto.getPrecio() sobre {"id":1})
+
+HTTP 200
+{"id":1,"usuario":{"id":7,"username":null,"nombre":null,"apellido":null,"email":null,"direccion":null,"roles":null},"sucursal":{"id":1,"nombre":null,"direccion":null,"region":null},"modoEntrega":"RETIRO_TIENDA","estado":"CONFIRMADO","fechaCreacion":"2026-07-19T04:14:32.134+00:00","detalles":[{"id":1,"pedido":{"id":1,"usuario":{"id":7,"username":null,"nombre":null,"apellido":null,"email":null,"direccion":null,"roles":null},"sucursal":{"id":1,"nombre":null,"direccion":null,"region":null},"modoEntrega":"RETIRO_TIENDA","estado":"CONFIRMADO","fechaCreacion":"2026-07-19T04:14:32.134+00:00"},"producto":{"id":1,"nombre":"Arroz 1kg","precio":1600.0,"stock":0,"categoria":{"id":1,"nombre":"Abarrotes"},"stockMinimo":5,"proveedor":{"id":1,"nombre":"Distribuidora Central","contacto":"contacto@distribuidoracentral.cl"}},"cantidad":1,"precioAplicado":1600.0}]}
+
+
+[2] Verificación: POST /api/pedidos con body indicando OTRO usuario.id — debe
+     ignorarse y atribuir el pedido al usuario autenticado (corrección T060)
+------------------------------------------------------------------------
+$ curl -s -X POST http://localhost:8080/api/pedidos \
+    -H "Authorization: Bearer <token_cliente>" \
+    -d "{\"usuario\":{\"id\":1},\"sucursal\":{\"id\":1},
+        \"modoEntrega\":\"RETIRO_TIENDA\",
+        \"detalles\":[{\"producto\":{\"id\":1},\"cantidad\":1}]}"
+
+HTTP 200
+{"id":2,"usuario":{"id":7,"username":null,"nombre":null,"apellido":null,"email":null,"direccion":null,"roles":null},"sucursal":{"id":1,"nombre":null,"direccion":null,"region":null},"modoEntrega":"RETIRO_TIENDA","estado":"CONFIRMADO","fechaCreacion":"2026-07-19T04:14:32.357+00:00","detalles":[{"id":2,"pedido":{"id":2,"usuario":{"id":7,"username":null,"nombre":null,"apellido":null,"email":null,"direccion":null,"roles":null},"sucursal":{"id":1,"nombre":null,"direccion":null,"region":null},"modoEntrega":"RETIRO_TIENDA","estado":"CONFIRMADO","fechaCreacion":"2026-07-19T04:14:32.357+00:00"},"producto":{"id":1,"nombre":"Arroz 1kg","precio":1600.0,"stock":0,"categoria":{"id":1,"nombre":"Abarrotes"},"stockMinimo":5,"proveedor":{"id":1,"nombre":"Distribuidora Central","contacto":"contacto@distribuidoracentral.cl"}},"cantidad":1,"precioAplicado":1600.0}]}
+
+
+[3] GET /api/productos/1  con token de gerente — bloque _links HATEOAS real
+------------------------------------------------------------------------
+$ curl -s http://localhost:8080/api/productos/1 \
+    -H "Authorization: Bearer <token_gerente>"
+
+HTTP 200
+{"id":1,"nombre":"Arroz 1kg","precio":1600.0,"stock":0,"categoria":{"id":1,"nombre":"Abarrotes"},"stockMinimo":5,"proveedor":{"id":1,"nombre":"Distribuidora Central","contacto":"contacto@distribuidoracentral.cl"},"_links":{"self":{"href":"http://localhost:8080/api/productos/1"},"productos":{"href":"http://localhost:8080/api/productos"},"categoria":{"href":"http://localhost:8080/api/categorias/1"},"inventario":{"href":"http://localhost:8080/api/inventario?productoId=1"}}}
+
+
+[4] GET /api/productos  colección con _embedded y _links de nivel colección
+------------------------------------------------------------------------
+HTTP 200
+{"_embedded":{"productoList":[{"id":1,"nombre":"Arroz 1kg","precio":1600.0,"stock":0,"categoria":{"id":1,"nombre":"Abarrotes"},"stockMinimo":5,"proveedor":{"id":1,"nombre":"Distribuidora Central","contacto":"contacto@distribuidoracentral.cl"},"_links":{"self":{"href":"http://localhost:8080/api/productos/1"},"productos":{"href":"http://localhost:8080/api/productos"},"categoria":{"href":"http://localhost:8080/api/categorias/1"},"inventario":{"href":"http://localhost:8080/api/inventario?productoId=1"}}}]},"_links":{"self":{"href":"http://localhost:8080/api/productos"}}}

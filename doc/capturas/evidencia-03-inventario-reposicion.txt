@@ -1,0 +1,51 @@
+========================================================================
+EVIDENCIA 03 — Inventario en tiempo real y reposición automática
+Servidor real en ejecución — http://localhost:8090 — 2026-07-19 00:38:05 -0400
+Rama: feat/eft-s9 — verifica FR-005 (stock por sucursal) y FR-006 (reposición)
+Nota: el body NO incluye fechaMovimiento — el servicio la autopobla al now()
+========================================================================
+
+[Contexto] Producto id=1 (Arroz 1kg), stockMinimo=5, sucursal id=1, proveedor id=1.
+           Entrada de 10 → Salida de 7. Al quedar el stock (3) bajo el mínimo (5),
+           el servicio genera EXACTAMENTE 1 OrdenDeCompra PENDIENTE (idempotencia:
+           la segunda salida NO duplica la orden).
+
+[0] GET /api/ordenes-compra  antes de operar — se espera lista vacía
+------------------------------------------------------------------------
+HTTP 200
+{"_links":{"self":{"href":"http://localhost:8090/api/ordenes-compra"}}}
+
+
+[1] POST /api/inventario  Entrada de 10 unidades (rol GERENTE_SUCURSAL)
+------------------------------------------------------------------------
+$ curl -s -X POST http://localhost:8090/api/inventario \
+    -H "Authorization: Bearer <token_gerente>" \
+    -d "{\"producto\":{\"id\":1},\"sucursal\":{\"id\":1},
+        \"tipoMovimiento\":\"Entrada\",\"cantidad\":10}"
+
+HTTP 200
+{"id":1,"producto":{"id":1,"nombre":null,"precio":null,"stock":null,"categoria":null,"stockMinimo":null,"proveedor":null},"sucursal":{"id":1,"nombre":null,"direccion":null,"region":null},"cantidad":10,"tipoMovimiento":"Entrada","fechaMovimiento":"2026-07-19T04:38:05.411+00:00"}
+
+
+[2] POST /api/inventario  Salida de 7 unidades (stock final = 3, bajo mínimo 5)
+------------------------------------------------------------------------
+HTTP 200
+{"id":2,"producto":{"id":1,"nombre":null,"precio":null,"stock":null,"categoria":null,"stockMinimo":null,"proveedor":null},"sucursal":{"id":1,"nombre":null,"direccion":null,"region":null},"cantidad":7,"tipoMovimiento":"Salida","fechaMovimiento":"2026-07-19T04:38:05.605+00:00"}
+
+
+[3] GET /api/ordenes-compra  después de la salida — se espera 1 orden PENDIENTE
+------------------------------------------------------------------------
+HTTP 200
+{"_embedded":{"ordenDeCompraList":[{"id":1,"producto":{"id":1,"nombre":"Arroz 1kg","precio":1500.0,"stock":0,"categoria":{"id":1,"nombre":"Abarrotes"},"stockMinimo":5,"proveedor":{"id":1,"nombre":"Distribuidora Central","contacto":"contacto@distribuidoracentral.cl"}},"sucursal":{"id":1,"nombre":"Sucursal Centro","direccion":"Av. Providencia 1234","region":"Metropolitana"},"proveedor":{"id":1,"nombre":"Distribuidora Central","contacto":"contacto@distribuidoracentral.cl"},"cantidadSolicitada":5,"estado":"PENDIENTE","fechaGeneracion":"2026-07-19T04:38:05.623+00:00","_links":{"self":{"href":"http://localhost:8090/api/ordenes-compra/1"},"ordenes-compra":{"href":"http://localhost:8090/api/ordenes-compra"}}}]},"_links":{"self":{"href":"http://localhost:8090/api/ordenes-compra"}}}
+
+
+[4] POST /api/inventario  Segunda Salida de 1 unidad — NO debe duplicar la orden
+------------------------------------------------------------------------
+HTTP 200
+{"id":3,"producto":{"id":1,"nombre":null,"precio":null,"stock":null,"categoria":null,"stockMinimo":null,"proveedor":null},"sucursal":{"id":1,"nombre":null,"direccion":null,"region":null},"cantidad":1,"tipoMovimiento":"Salida","fechaMovimiento":"2026-07-19T04:38:06.116+00:00"}
+
+
+[5] GET /api/ordenes-compra  final — se espera SEGUIR con solo 1 orden PENDIENTE
+------------------------------------------------------------------------
+HTTP 200
+{"_embedded":{"ordenDeCompraList":[{"id":1,"producto":{"id":1,"nombre":"Arroz 1kg","precio":1500.0,"stock":0,"categoria":{"id":1,"nombre":"Abarrotes"},"stockMinimo":5,"proveedor":{"id":1,"nombre":"Distribuidora Central","contacto":"contacto@distribuidoracentral.cl"}},"sucursal":{"id":1,"nombre":"Sucursal Centro","direccion":"Av. Providencia 1234","region":"Metropolitana"},"proveedor":{"id":1,"nombre":"Distribuidora Central","contacto":"contacto@distribuidoracentral.cl"},"cantidadSolicitada":5,"estado":"PENDIENTE","fechaGeneracion":"2026-07-19T04:38:05.623+00:00","_links":{"self":{"href":"http://localhost:8090/api/ordenes-compra/1"},"ordenes-compra":{"href":"http://localhost:8090/api/ordenes-compra"}}}]},"_links":{"self":{"href":"http://localhost:8090/api/ordenes-compra"}}}

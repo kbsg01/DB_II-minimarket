@@ -240,4 +240,41 @@ public class InventarioServiceTest {
         assertThrows(DatosIncompletosException.class,
                 () -> inventarioService.actualizarMovimiento(1L, inventario));
     }
+
+    @Test
+    void registrarMovimientoSinFechaLaAsignaAutomaticamente() {
+        Inventario inventario = new Inventario();
+        inventario.setTipoMovimiento("Entrada");
+        inventario.setCantidad(10);
+        inventario.setProducto(producto);
+        inventario.setSucursal(sucursal);
+        assertNull(inventario.getFechaMovimiento());
+        when(inventarioRepository.save(any(Inventario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        java.util.Date antes = new java.util.Date();
+        Inventario resultado = inventarioService.registrarMovimiento(inventario);
+        java.util.Date despues = new java.util.Date();
+
+        assertNotNull(resultado.getFechaMovimiento(),
+                "El servicio debe autopoblar fechaMovimiento cuando el body no la trae");
+        assertFalse(resultado.getFechaMovimiento().before(antes));
+        assertFalse(resultado.getFechaMovimiento().after(despues));
+    }
+
+    @Test
+    void registrarMovimientoConFechaExplicitaLaPreserva() {
+        Inventario inventario = new Inventario();
+        inventario.setTipoMovimiento("Entrada");
+        inventario.setCantidad(10);
+        inventario.setProducto(producto);
+        inventario.setSucursal(sucursal);
+        java.util.Date fechaCliente = new java.util.Date(1_700_000_000_000L);
+        inventario.setFechaMovimiento(fechaCliente);
+        when(inventarioRepository.save(any(Inventario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Inventario resultado = inventarioService.registrarMovimiento(inventario);
+
+        assertEquals(fechaCliente, resultado.getFechaMovimiento(),
+                "El servicio no debe sobreescribir la fecha enviada por el cliente");
+    }
 }

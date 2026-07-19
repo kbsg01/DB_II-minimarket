@@ -10,6 +10,7 @@ import com.minimarket.service.OrdenDeCompraService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -55,6 +56,9 @@ public class InventarioServiceImpl implements InventarioService {
     @Override
     public Inventario registrarMovimiento(Inventario inventario) {
         validarMovimiento(inventario);
+        if (inventario.getFechaMovimiento() == null) {
+            inventario.setFechaMovimiento(new Date());
+        }
 
         Inventario guardado = inventarioRepository.save(inventario);
 
@@ -79,6 +83,9 @@ public class InventarioServiceImpl implements InventarioService {
     public Inventario actualizarMovimiento(Long id, Inventario inventario) {
         validarMovimiento(inventario);
         inventario.setId(id);
+        if (inventario.getFechaMovimiento() == null) {
+            inventario.setFechaMovimiento(new Date());
+        }
         return inventarioRepository.save(inventario);
     }
 
