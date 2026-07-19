@@ -1,0 +1,65 @@
+========================================================================
+EVIDENCIA 02 — Autenticación JWT y autorización por roles
+Servidor real en ejecución — http://localhost:8080 — 2026-07-19 00:12:47 -0400
+Rama: feat/eft-s9 — Verificado con curl contra el servidor Spring Boot en vivo
+========================================================================
+
+[1] POST /api/auth/login  (usuario 'cliente' / 'cliente123')
+------------------------------------------------------------------------
+$ curl -s -X POST http://localhost:8080/api/auth/login \
+    -H "Content-Type: application/json" \
+    -d "{\"username\":\"cliente\",\"password\":\"cliente123\"}"
+
+HTTP 200
+{"roles":["ROLE_CLIENTE"],"token":"eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6WyJST0xFX0NMSUVOVEUiXSwic3ViIjoiY2xpZW50ZSIsImlhdCI6MTc4NDQzNDM2NywiZXhwIjoxNzg0NTIwNzY3fQ.gryupDsIPC_CtMIaanBYJQTtioK9DHtyhlwdLdCvy-s","username":"cliente"}
+
+
+[2] POST /api/auth/login  (usuario 'gerente' / 'gerente123')
+------------------------------------------------------------------------
+HTTP 200
+{"roles":["ROLE_GERENTE_SUCURSAL"],"token":"eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6WyJST0xFX0dFUkVOVEVfU1VDVVJTQUwiXSwic3ViIjoiZ2VyZW50ZSIsImlhdCI6MTc4NDQzNDM2NywiZXhwIjoxNzg0NTIwNzY3fQ.8jlvVTPJ4gGsohRnW0TVknmny8q3kMAqsZXqObjk8GI","username":"gerente"}
+
+
+[3] POST /api/auth/login  (credenciales incorrectas) — se espera 401
+------------------------------------------------------------------------
+$ curl -s -X POST http://localhost:8080/api/auth/login \
+    -d "{\"username\":\"admin\",\"password\":\"contrasena_incorrecta\"}"
+
+HTTP 401
+{"error":"Credenciales inválidas"}
+
+
+[4] PUT /api/productos/1  SIN header Authorization — se espera 401
+------------------------------------------------------------------------
+$ curl -s -X PUT http://localhost:8080/api/productos/1 \
+    -H "Content-Type: application/json" -d "{\"precio\":999.0}"
+
+HTTP 401
+{"path":"/api/productos/1","error":"No autorizado","message":"Se requiere autenticación. Incluye un token JWT válido en el header Authorization.","status":401}
+
+
+[5] PUT /api/productos/1  con token de CLIENTE (rol insuficiente) — 403
+------------------------------------------------------------------------
+$ curl -s -X PUT http://localhost:8080/api/productos/1 \
+    -H "Authorization: Bearer <token_cliente>" \
+    -d "{\"precio\":999.0}"
+
+HTTP 403
+{
+  "timestamp": "2026-07-19T04:12:48.682+00:00",
+  "status": 403,
+  "error": "Forbidden",
+  "message": "Forbidden",
+  "path": "/api/productos/1"
+}
+
+
+[6] PUT /api/productos/1  con token de GERENTE (autorizado) — 200
+------------------------------------------------------------------------
+$ curl -s -X PUT http://localhost:8080/api/productos/1 \
+    -H "Authorization: Bearer <token_gerente>" \
+    -d "{\"id\":1,\"nombre\":\"Arroz 1kg\",\"precio\":1600.0,\"stock\":0,
+        \"stockMinimo\":5,\"categoria\":{\"id\":1},\"proveedor\":{\"id\":1}}"
+
+HTTP 200
+{"id":1,"nombre":"Arroz 1kg","precio":1600.0,"stock":0,"categoria":{"id":1,"nombre":"Abarrotes"},"stockMinimo":5,"proveedor":{"id":1,"nombre":"Distribuidora Central","contacto":"contacto@distribuidoracentral.cl"}}

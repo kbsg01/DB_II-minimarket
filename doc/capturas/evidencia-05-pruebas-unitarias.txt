@@ -1,0 +1,35 @@
+========================================================================
+EVIDENCIA 05 — Pruebas unitarias e integración
+Salida real de ./mvnw test — 2026-07-19 00:15:45 -0400 — JDK 25.0.3
+Rama: feat/eft-s9 — 21 clases de prueba, 135 pruebas, BUILD SUCCESS
+========================================================================
+
+$ ./mvnw test
+
+--- Resultado por clase de prueba (21 clases) ---
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 9.966 s -- in com.minimarket.MinimarketApplicationTests
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.095 s -- in com.minimarket.security.AutorizacionRolesTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.441 s -- in com.minimarket.security.PedidoAutorizacionTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.409 s -- in com.minimarket.security.PromocionAutorizacionTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.424 s -- in com.minimarket.security.SucursalYProveedorAutorizacionTest
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.381 s -- in com.minimarket.service.CarritoServiceTest
+[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.184 s -- in com.minimarket.service.InventarioServiceTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.081 s -- in com.minimarket.service.OrdenDeCompraServiceTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.096 s -- in com.minimarket.service.PedidoIntegrationTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.228 s -- in com.minimarket.service.PedidoServiceTest
+[INFO] Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.027 s -- in com.minimarket.service.ProductoServiceTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.104 s -- in com.minimarket.service.PromocionServiceTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.093 s -- in com.minimarket.service.ProveedorServiceTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.080 s -- in com.minimarket.service.ReposicionAutomaticaIntegrationTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.081 s -- in com.minimarket.service.SucursalServiceTest
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.018 s -- in com.minimarket.service.UsuarioServiceTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.035 s -- in com.minimarket.service.VentaIntegrationTest
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.100 s -- in com.minimarket.service.VentaServiceTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in com.minimarket.UsuarioTest
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.494 s -- in com.minimarket.web.HateoasLinksTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.378 s -- in com.minimarket.web.PedidoInventarioApiIntegrationTest
+
+--- Resumen final ---
+[INFO] Tests run: 135, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+[INFO] Total time:  24.377 s
