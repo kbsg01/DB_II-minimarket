@@ -17,12 +17,14 @@ implementación y las conclusiones del equipo").
 
 ## Checklist previo a grabar (bloqueante)
 
-- [x] `./mvnw test` en `feat/eft-s9` termina en `BUILD SUCCESS` (SC-006) — verificado
-      2026-07-18, **135/135** pruebas (`specs/001-minimarket-backend-spec` completa,
-      incluyendo las Fases 8-11 de Convergencia: autorización granular, Promociones,
-      corrección de la venta directa, `Sucursal`/`Proveedor` completados, y la corrección
-      de dos defectos CRITICAL detectados contra el servidor real: reposición automática
-      silenciosa y `HTTP 500` en `POST /api/pedidos`).
+- [x] `./mvnw test` en `feat/eft-s9` termina en `BUILD SUCCESS` (SC-006) — reverificado
+      2026-07-19 sobre JDK 25.0.3, **135/135** pruebas en 21 clases (20 de negocio +
+      `MinimarketApplicationTests` como smoke test del contexto), `Total time: 24.9 s`
+      (`specs/001-minimarket-backend-spec` completa, incluyendo las Fases 8-11 de
+      Convergencia: autorización granular, Promociones, corrección de la venta directa,
+      `Sucursal`/`Proveedor` completados, y la corrección de dos defectos CRITICAL
+      detectados contra el servidor real: reposición automática silenciosa y `HTTP 500`
+      en `POST /api/pedidos`).
 - [x] Cada capacidad a mostrar tiene un registro `CapacidadVerificada` con
       `estado = VERIFICADA` (ver `doc/consolidacion-s6/capacidades-verificadas.md`)
 - [x] Ninguna capacidad con `estado != VERIFICADA` aparece en las secciones de abajo
@@ -60,7 +62,7 @@ conclusiones del equipo.
 | Autorización por rol y por propiedad (todos los controladores) | `specs/001-minimarket-backend-spec`, Fases 8 y 9 de Convergencia | VERIFICADA | `PUT /api/productos/{id}` con rol `CLIENTE` → `403`; `POST /api/inventario` con `CLIENTE` → `403`; `GET /api/ventas`/`GET /api/carrito` filtran al propio usuario salvo rol de gestión; `GET /api/detalle-ventas` restringido a `CAJERO`/gestión. |
 | Gestión centralizada de promociones | `specs/001-minimarket-backend-spec` (T050) | VERIFICADA | `PromocionController` (`GET`/`POST`/`PUT`/`DELETE /api/promociones`), restringido a roles de gestión, con validación de rango de fechas. |
 | Pedidos en línea con precio promocional | `specs/001-minimarket-backend-spec` | VERIFICADA | Pedido confirmado aplica el descuento vigente al precio final y descuenta stock de la sucursal correspondiente; venta directa en tienda también aplica el precio promocional desde la corrección de T058. |
-| Ejecución de pruebas unitarias | `specs/001` + `specs/002` | VERIFICADA | `./mvnw test` → `BUILD SUCCESS`, **135/135** pruebas. |
+| Ejecución de pruebas unitarias | `specs/001` + `specs/002` | VERIFICADA | `./mvnw test` → `BUILD SUCCESS`, **135/135** pruebas (reverificado 2026-07-19). |
 | Documentación OpenAPI (Swagger UI) | `feat/microservices-junit-s6` + T053 | VERIFICADA | `GET /swagger-ui/index.html` → `200`; `GET /v3/api-docs` → `200`; 14 tags documentados en todos los controladores de negocio, incluyendo `Sucursales`/`Proveedores` (T062). |
 | HATEOAS (enlaces `_links` reales, 11 recursos) | `specs/001-minimarket-backend-spec` (implementación nueva + T051/T062) | VERIFICADA | `GET /api/productos/{id}` → `_links.self`, `_links.categoria`, `_links.inventario` con hrefs navegables reales; los 11 recursos de negocio (incluyendo `OrdenDeCompra`, `Promocion`, `Sucursal` y `Proveedor`) tienen sus propios assemblers. Es exactamente la capacidad que `doc/grupo7.html` señaló como declarada sin código real en S8 — ahora tiene código real y pruebas (`HateoasLinksTest`, 9 pruebas). |
 | Gestión de Sucursales y Proveedores vía API | `specs/001-minimarket-backend-spec` (T062, cuarta pasada de Convergencia) | VERIFICADA | `SucursalController`/`ProveedorController` creados: antes no existía ningún endpoint real pese a estar declarados en `contracts/openapi.yaml`; `DataInitializer` siembra los datos mínimos que `quickstart.md` siempre exigió. |

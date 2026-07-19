@@ -15,7 +15,7 @@ completo de esa consolidación y el porqué.
 
 ```bash
 ./mvnw spring-boot:run        # Linux / macOS
-mvnw.cmd spring-boot:run      # Windows
+.\mvnw.cmd spring-boot:run    # Windows (PowerShell / CMD)
 ```
 
 La aplicación queda disponible en `http://localhost:8080`.
@@ -26,7 +26,11 @@ La aplicación queda disponible en `http://localhost:8080`.
 ./mvnw test
 ```
 
-Resultado esperado: `Tests run: 135, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS`.
+Resultado esperado: `Tests run: 135, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS`
+(21 clases de prueba: 10 unitarias con Mockito sobre servicios, 1 unitaria sobre la
+entidad `Usuario`, 9 de integración con `@SpringBootTest` sin mocks — incluidas 4 con
+`MockMvc` sobre JSON real —, y 1 smoke test del contexto Spring). Verificado 2026-07-19
+sobre JDK 25.0.3 con `./mvnw test`, tiempo total ≈ 25 s.
 
 ## Autenticación
 
@@ -74,9 +78,15 @@ aceptar la ventana de exposición resultante.
 | Swagger UI | http://localhost:8080/swagger-ui/index.html |
 | Contrato OpenAPI (JSON) | http://localhost:8080/v3/api-docs |
 | Consola H2 | http://localhost:8080/h2-console (JDBC: `jdbc:h2:mem:testdb`, usuario `sa`, sin contraseña) |
+| Actuator (salud) | http://localhost:8080/actuator/health |
 
-Los endpoints `/public/**`, `/api/auth/**`, Swagger UI y `/v3/api-docs` son de acceso
-público; el resto requiere un token JWT válido.
+Los endpoints `/public/**`, `/api/auth/**`, Swagger UI, `/v3/api-docs` y `/actuator/**`
+son de acceso público; el resto requiere un token JWT válido.
+
+La API expone **14 recursos de negocio** (Autenticación, Carrito, Categorías, Detalle
+de Ventas, Inventario, Órdenes de Compra, Pedidos, Productos, Promociones, Proveedores,
+Reportes, Sucursales, Usuarios y Ventas), cada uno con su tag en Swagger UI y con
+respuestas HTTP documentadas vía `@ApiResponses`.
 
 ## Nota de compatibilidad (JDK 25)
 
@@ -89,7 +99,21 @@ está fijado en la versión `3.14.0` por el mismo motivo. Ver
 ## Estado de HATEOAS
 
 La documentación OpenAPI (Swagger UI) y los enlaces HATEOAS (`_links`) están
-implementados y verificados en todos los recursos (Producto, Categoría, Inventario,
-Carrito, Venta, DetalleVenta, Pedido, OrdenDeCompra, Promoción, Sucursal, Proveedor) vía
-`RepresentationModelAssembler` — ver `doc/consolidacion-s6/capacidades-verificadas.md` y
+implementados y verificados en los **11 recursos de negocio** (Producto, Categoría,
+Inventario, Carrito, Venta, DetalleVenta, Pedido, OrdenDeCompra, Promoción, Sucursal y
+Proveedor) vía `RepresentationModelAssembler` — hay 11 clases `*ModelAssembler` bajo
+`com.minimarket.web`. La cobertura de pruebas de los `_links` está en
+`web.HateoasLinksTest` (9 pruebas de integración con `MockMvc`). Ver
+`doc/consolidacion-s6/capacidades-verificadas.md` y
 `specs/001-minimarket-backend-spec/spec.md` (Historia de Usuario 4) para el detalle.
+
+## Documentación adicional
+
+- `doc/informe-eft.md` — informe consolidado de la EFT (S9), con evidencia de ejecución
+  y autoevaluación frente a la pauta.
+- `doc/guion-video-eft.md` — guion del video de presentación (Kaltura, 7-10 min).
+- `doc/capturas/` — capturas reales del servidor `./mvnw spring-boot:run` en ejecución,
+  citadas desde el informe.
+- `specs/001-minimarket-backend-spec/` — especificación, `research.md` y `tasks.md`
+  del backend.
+- `specs/002-guion-video-ejecucion/` — trazabilidad del guion y de la consolidación S6.

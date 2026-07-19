@@ -2,11 +2,12 @@
 ## Evaluación Final Transversal (EFT) — Semana 9
 
 **Proyecto**: Backend "MiniMarket Plus"
-**Repositorio**: *(completar con el enlace del repositorio público en GitHub al momento de la entrega)*
+**Repositorio**: https://github.com/kbsg01/DB_II-minimarket
 **Rama de entrega**: `feat/eft-s9`
 **Integrantes del equipo**: *(completar)*
 **Jefe de proyecto**: *(completar)*
 **Fecha de entrega**: *(completar)*
+**Última verificación de esta evidencia**: 2026-07-19 (JDK 25.0.3, Spring Boot 3.4.1)
 
 Toda la evidencia presentada en este informe —resultados de pruebas, respuestas HTTP y
 capturas de pantalla— fue obtenida mediante ejecución directa del servidor
@@ -88,7 +89,7 @@ gestión.
 
 ### 2.4 Evidencia de ejecución
 
-```
+```bash
 $ curl -X POST http://localhost:8080/api/auth/login \
     -H "Content-Type: application/json" \
     -d '{"username":"admin","password":"admin123"}'
@@ -99,14 +100,14 @@ $ curl -X POST http://localhost:8080/api/auth/login \
 → HTTP 200
 ```
 
-```
+```bash
 $ curl -X POST http://localhost:8080/api/auth/login \
     -H "Content-Type: application/json" \
     -d '{"username":"admin","password":"contraseña_incorrecta"}'
 → HTTP 401
 ```
 
-```
+```bash
 $ curl http://localhost:8080/api/productos          # sin header Authorization
 → HTTP 401
 
@@ -134,21 +135,23 @@ producción (versión de token por usuario), fuera del alcance de esta EFT.
 
 ## 3. Detalle de las pruebas unitarias implementadas
 
-**Resultado de la suite completa**:
+**Resultado de la suite completa** (verificado 2026-07-19, JDK 25.0.3):
 
-```
+```bash
 $ ./mvnw test
 ...
 [INFO] Tests run: 135, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
+[INFO] Total time:  24.934 s
 ```
 
 ![Salida completa de ./mvnw test: 135/135, BUILD SUCCESS](capturas/05-pruebas-unitarias.png)
 
-### 3.1 Inventario de clases de prueba (20 clases, 135 pruebas)
+### 3.1 Inventario de clases de prueba (21 clases, 135 pruebas)
 
 | Clase | Tipo | Qué cubre |
 |---|---|---|
+| `MinimarketApplicationTests` | Smoke test (`@SpringBootTest`) | El contexto de Spring arranca sin errores con la configuración completa (JPA + Security + JWT + springdoc-openapi + HATEOAS). |
 | `UsuarioTest` | Unitaria (entidad) | Constructores de `Usuario`/`Rol`. |
 | `service.ProductoServiceTest` | Unitaria (Mockito) | CRUD de productos. |
 | `service.CarritoServiceTest` | Unitaria (Mockito) | `agregarProducto` con validación de stock (`StockInsuficienteException`, `DatosIncompletosException`). |
@@ -287,8 +290,9 @@ funcionales se reverificaron en vivo contra el mismo servidor real.
 
 Patrón `RepresentationModelAssembler` (`com.minimarket.web.*ModelAssembler`) implementado
 en los 11 recursos de negocio: Producto, Categoría, Inventario, Carrito, Venta,
-DetalleVenta, Pedido, OrdenDeCompra, Promoción, Sucursal y Proveedor. Cada respuesta
-incluye un bloque `_links` con enlaces navegables reales, por ejemplo:
+DetalleVenta, Pedido, OrdenDeCompra, Promoción, Sucursal y Proveedor — 11 clases
+`*ModelAssembler` reales bajo `com.minimarket.web`. Cada respuesta incluye un bloque
+`_links` con enlaces navegables reales, por ejemplo:
 
 ```json
 GET /api/productos  (Authorization: Bearer <token admin>)
@@ -311,7 +315,10 @@ GET /api/productos  (Authorization: Bearer <token admin>)
 ```
 
 Evidencia verificada contra el servidor real, con datos creados a través de la propia API
-(sin *fixtures* precargados), y cubierta por `web.HateoasLinksTest` (9 pruebas).
+(sin *fixtures* precargados), y cubierta por `web.HateoasLinksTest` (9 pruebas de
+integración con `MockMvc`, una por cada recurso individual con `_links` navegables:
+Producto individual, colección de productos, Sucursal, Categoría, Inventario, Carrito,
+Venta, DetalleVenta y Pedido).
 
 ---
 
